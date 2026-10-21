@@ -15,7 +15,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Read a response body into one buffer, reporting chunk sizes as they
 // arrive.
-async function drain(res, { onBytes, onTotal } = {}) {
+async function drain(res, { onBytes, onTotal, maxBytes = Infinity } = {}) {
   const length = res.headers.get("Content-Length");
   onTotal?.(length === null ? null : Number(length));
 
@@ -29,6 +29,10 @@ async function drain(res, { onBytes, onTotal } = {}) {
     }
     chunks.push(value);
     total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel();
+      throw new RangeError("Download byte budget exceeded");
+    }
     onBytes?.(value.byteLength);
   }
 
@@ -93,6 +97,7 @@ export async function fetchWithProgress(url, options = {}) {
       options.onCacheRead?.(CacheResult.MISS, bytes.byteLength);
       return bytes;
     } catch (err) {
+      if (err instanceof RangeError) throw err;
       options.onBytes?.(-downloaded);
       downloaded = 0;
 

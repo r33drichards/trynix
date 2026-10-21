@@ -1,0 +1,38 @@
+{
+  "paths": 6,
+  "compressedBytes": 12514847,
+  "unpackedBytes": 43686496,
+  "maxDownloadBytes": 268435456,
+  "maxUnpackedBytes": 805306368,
+  "withinBudget": true,
+  "largest": [
+    {
+      "path": "/nix/store/pqyiidz5mi73wv5f91d48s9plcqyj5bz-glibc-2.44-57",
+      "compressed": 10433559,
+      "unpacked": 35578240,
+      "references": [
+        "00fs4zz9c0jjcvs62wg39b91dydz7zqb",
+        "pkkjnyk4z46n18fkyqwlg24p272apb69",
+        "pqyiidz5mi73wv5f91d48s9plcqyj5bz"
+      ]
+    },
+    {
+      "path": "/nix/store/r9nlzwasmr1hgcbrfzcp2b2cz33scij2-ncurses-6.6",
+      "compressed": 712525,
+      "unpacked": 3882816,
+      "references": [
+        "pqyiidz5mi73wv5f91d48s9plcqyj5bz",
+        "r9nlzwasmr1hgcbrfzcp2b2cz33scij2"
+      ]
+    },
+    {
+      "path": "/nix/store/bx7jdvkba26sy20ryr4l617qqmzj9hff-libunistring-1.4.2",
+      "compressed": 794050,
+      "unpacked": 2083096,
+      "references": [
+        "bx7jdvkba26sy20ryr4l617qqmzj9hff"
+      ]
+    }
+  ],
+  "note": "Inventory only. Does not prove RAM sufficiency, signatures, or execution compatibility."
+}

@@ -22,6 +22,7 @@ import {
   Precedence,
   programsOf,
   writeEntries,
+  writeEntriesCooperatively,
 } from "./store.js";
 import { openTerminal } from "./terminal.js";
 import { guestDriver } from "./agent.js";
@@ -189,6 +190,18 @@ function storeShare(FS) {
       programs.set(basename, programsOf(entries));
     },
 
+    // Cooperative host writes let Cancel run between bounded entry batches.
+    async writeCooperatively(basename, entries, signal) {
+      if (programs.has(basename)) return;
+      await writeEntriesCooperatively(
+        FS,
+        `${STORE_DIR}/${basename}`,
+        entries,
+        signal,
+      );
+      programs.set(basename, programsOf(entries));
+    },
+
     // Offer a written path's programs in the farm.
     link(basename, precedence) {
       linkPrograms(
@@ -336,9 +349,20 @@ export async function startVM({
     slave,
   };
 
+  let disposed = false;
   return {
     terminal: ui.terminal,
     share,
+    // Irreversible stop of all Emscripten pthread workers, not a shell interrupt.
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      mod.PThread.terminateAllThreads();
+      // Preserve the inert terminal until page reset: queued PTY writes can
+      // arrive after worker termination and ghostty rejects writes after dispose.
+      // The CPU-owning pthreads above are still terminated immediately.
+      delete window.trynix;
+    },
 
     // Finish the share and let QEMU run. `roots` are the basenames the
     // reader selected, in selection order. Resolves when the guest is

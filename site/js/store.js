@@ -12,6 +12,7 @@
 // first time a boot meets a bzip2 path, which for most boots is never.
 /* global xzwasm, fzstd */
 
+import { readSizedStream } from "./bounded-stream.js";
 import { CACHE_URL } from "./config.js";
 import { parseNar } from "./nar.js";
 import { fetchWithProgress } from "./net.js";
@@ -95,7 +96,12 @@ async function verifyUnpacked(info, nar) {
 // download — the compressed copy is dropped from the cache first —
 // before the boot gives up with a message that names the path and
 // the reason.
-export async function fetchNar(info, onBytes, onCacheRead) {
+export async function fetchNar(
+  info,
+  onBytes,
+  onCacheRead,
+  { maxBytes = Infinity, maxUnpackedBytes = Infinity } = {},
+) {
   if (!["bzip2", "xz", "zstd", "none"].includes(info.compression)) {
     // Named, like every other refusal here, because the message is
     // the whole of what a reader can report: the one that brought
@@ -112,7 +118,11 @@ export async function fetchNar(info, onBytes, onCacheRead) {
   const url = `${info.substituter ?? CACHE_URL}/${info.url}`;
 
   for (let attempt = 1; ; attempt += 1) {
-    const compressed = await fetchWithProgress(url, { onBytes, onCacheRead });
+    const compressed = await fetchWithProgress(url, {
+      onBytes,
+      onCacheRead,
+      maxBytes,
+    });
 
     const drift = compressedDrift(info, compressed);
     if (drift !== null) {
@@ -127,7 +137,7 @@ export async function fetchNar(info, onBytes, onCacheRead) {
     let nar = null;
     let problem = null;
     try {
-      nar = await decompress(info, compressed);
+      nar = await decompress(info, compressed, maxUnpackedBytes);
       problem = await verifyUnpacked(info, nar);
     } catch (err) {
       // A decoder that never loaded says nothing about these bytes, so
@@ -172,7 +182,7 @@ const NAR_ATTEMPTS = 2;
 class DecoderUnavailable extends Error {}
 
 // The archive's bytes, whatever it was compressed with.
-async function decompress(info, compressed) {
+async function decompress(info, compressed, maxUnpackedBytes) {
   if (info.compression === "none") {
     return compressed;
   }
@@ -186,7 +196,9 @@ async function decompress(info, compressed) {
         return await unbzip2(compressed, info.narSize);
       }
       const stream = new xzwasm.XzReadableStream(new Response(compressed).body);
-      return new Uint8Array(await new Response(stream).arrayBuffer());
+      return maxUnpackedBytes === Infinity
+        ? new Uint8Array(await new Response(stream).arrayBuffer())
+        : await readSizedStream(stream, info.narSize, maxUnpackedBytes);
     } catch (err) {
       // Say which archive, since the underlying message names nothing.
       log(
@@ -463,4 +475,20 @@ export function writeEntries(FS, root, entries) {
 
     FS.symlink(absoluteTarget(path, entry.target), path);
   }
+}
+
+// Bounded batches preserve archive order while yielding for cancellation.
+export async function writeEntriesCooperatively(
+  FS,
+  root,
+  entries,
+  signal,
+  yieldTask = () => new Promise((resolve) => setTimeout(resolve, 0)),
+) {
+  for (let i = 0; i < entries.length; i += 64) {
+    if (signal?.aborted) throw new Error("Cancelled");
+    writeEntries(FS, root, entries.slice(i, i + 64));
+    await yieldTask();
+  }
+  if (signal?.aborted) throw new Error("Cancelled");
 }
