@@ -1191,6 +1191,11 @@ registerTools(page);
 
 // Opt-in experiment only. Removing a VM without terminating pthreads is not cancel.
 if (rustExperiment) {
+  const warning = document.createElement("p");
+  warning.setAttribute("role", "note");
+  warning.textContent =
+    "Experimental Rust feasibility test, not supported Rust execution. Large historical toolchains have made the test browser unresponsive; closing the tab may be necessary. Modern Rust exceeds the size budget. Small-package controls passed, but Rust compilation has not been verified.";
+  bootButton.parentElement.prepend(warning);
   const cancel = document.createElement("button");
   cancel.textContent = "Cancel Rust experiment";
   cancel.addEventListener("click", () => {

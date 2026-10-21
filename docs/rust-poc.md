@@ -34,3 +34,25 @@ is added. Browser package fetches still use the configured signed Nix caches.
 Run `node --test tests/site/*.test.mjs`. Current result: 63 passed, 2 skipped
 (bzip2 browser-vendor tests require assembled site/vendor). Real modified-browser
 verification must precede any claim that Rust compilation works in pastebin.
+
+## Preview evidence, 2026-10-21 UTC
+
+Temporary preview: https://rust-poc-static-preview.up.railway.app/?experiment=rust
+This is a static Railway server, not a compilation service or guest network relay.
+No main branch merge or existing service change was performed.
+
+- Deployed revision `25ee78a54f3fb2df99f5dbf9f3c83141ebd47850` built successfully through the existing pinned Nix site derivation. HTTP 200 and COOP/COEP headers were verified.
+- Modern Rust 1.99.0: the 13-path closure is rejected before engine and archive downloads because an unpacked archive exceeds the budget.
+- Small current hello closure: command returned status 0 and “Hello, world!”; a subsequent console read reported no guest after automatic teardown.
+- Revised small XZ hello 2.10: four signed paths, 6.7 MiB compressed. Debug log timestamps were closure 8.9s, engine instantiated 9.5s, VM running 15.4s, guest prompt 32.9s, successful command result 52.6s after page load. These include operator delays and are not isolated benchmark timings.
+- Cancel during preparation returned to a fresh, responsive unbooted page.
+- Historical Rust 1.30.1: 22 signed paths, about 148 MiB compressed / 517 MiB unpacked. First worker-unpack attempt became unresponsive during closure loading. A single retry after bounded XZ assembly and cooperative materialization again produced a browser DOM timeout before any compiler command. Both tabs were closed successfully.
+- No Rust source compile/run, syntax-error, stdin/file, infinite-loop, or cold/warm compilation metric has passed. Node mock-driver tests are not evidence of these browser outcomes.
+- The failures do not diagnose OOM. Main-thread stalls, memory pressure, and browser-environment constraints remain hypotheses. Moving decompression alone is insufficient evidence of a fix.
+- Latest local suite: 71 tests, 69 passed, two skipped because the local source checkout lacks Nix-assembled bzip2 vendor artifacts.
+
+Do not repeat unchanged heavy launches or increase budgets to make a test pass.
+A next architectural investigation is a killable owner worker for the VM and
+filesystem, or a backing store that does not retain the complete unpacked closure
+in MEMFS. The present Cancel button cannot promise to interrupt a blocked owner
+event loop. Keep this PR draft and do not advertise Rust support.
