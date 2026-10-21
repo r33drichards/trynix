@@ -3,8 +3,8 @@ import {
   loadNarInWorker,
   runGuestWithDeadline,
 } from "./poc-control.js";
-const rustExperiment =
-  new URLSearchParams(location.search).get("experiment") === "rust";
+const experiment = new URLSearchParams(location.search).get("experiment");
+const guardedExperiment = ["rust", "lua"].includes(experiment);
 let archiveAbort;
 // Page wiring: choose packages out of the nixpkgs-multiverse index —
 // by search, by version range, or by raw store path — walk the union of
@@ -671,7 +671,7 @@ async function boot() {
     log(`closure: ${closure.size} paths from ${rootDigests.length} roots`);
     walkRow.done(`${closure.size} paths`);
     renderClosure(closure);
-    if (rustExperiment) checkClosureBudget([...closure.values()]);
+    if (guardedExperiment) checkClosureBudget([...closure.values()]);
 
     // Signatures are checked against the configured keys. A path no key
     // vouches for is still booted — the reader chose the cache — but
@@ -692,7 +692,7 @@ async function boot() {
       signatureRow.done(`${closure.size} verified`);
     }
 
-    if (rustExperiment && (unsigned > 0 || unverifiable > 0))
+    if (guardedExperiment && (unsigned > 0 || unverifiable > 0))
       throw new Error("Rust POC requires verified closure signatures");
     stage = LoadStage.DOWNLOAD;
     const engineUrls = await assets([QEMU_MAIN, QEMU_WASM, QEMU_WORKER]);
@@ -780,15 +780,15 @@ async function boot() {
     // dropped from the page's hands right after. Nothing here ever
     // holds more than the few NARs in flight.
     // Own the handle before archive workers can fail, so catch can dispose it.
-    if (rustExperiment) vm = await vmPromise;
+    if (guardedExperiment) vm = await vmPromise;
     const infos = [...closure.values()];
     closureRow.setTotal(infos.reduce((sum, i) => sum + i.fileSize, 0));
     archiveAbort = new AbortController();
     const closurePromise = mapConcurrent(
       infos,
-      rustExperiment ? 1 : NAR_CONCURRENCY,
+      guardedExperiment ? 1 : NAR_CONCURRENCY,
       async (info) => {
-        const entries = rustExperiment
+        const entries = guardedExperiment
           ? await loadNarInWorker(info, {
               signal: archiveAbort.signal,
               onBytes: (n) => closureRow.add(n),
@@ -796,7 +796,7 @@ async function boot() {
             })
           : await fetchNar(info, (n) => closureRow.add(n), telemetry.cacheRead);
         const vm = await vmPromise;
-        if (rustExperiment)
+        if (guardedExperiment)
           await vm.share.writeCooperatively(
             basenameOf(info),
             entries,
@@ -831,7 +831,7 @@ async function boot() {
     telemetry.finish(LoadStage.READY, mode);
     log("guest at its prompt");
     vmRow.done("running");
-    if (rustExperiment) {
+    if (guardedExperiment) {
       bootButton.disabled = true;
       const driver = { run: window.trynix.run.bind(window.trynix) };
       const runningVM = vm;
@@ -849,10 +849,10 @@ async function boot() {
             command,
             Math.min(timeoutMs, 120000),
           );
-          log(`Rust POC command result: ${JSON.stringify(result)}`);
+          log(`Linux POC command result: ${JSON.stringify(result)}`);
           return result;
         } catch (error) {
-          log(`Rust POC command failed: ${error.message}`);
+          log(`Linux POC command failed: ${error.message}`);
           throw error;
         } finally {
           vm = null;
@@ -864,7 +864,7 @@ async function boot() {
   } catch (err) {
     telemetry.finish(stage, mode);
     log(`boot failed: ${err.message}`);
-    if (rustExperiment) {
+    if (guardedExperiment) {
       archiveAbort?.abort();
       vm?.dispose();
       vm = null;
@@ -904,9 +904,9 @@ rebootLink.addEventListener("click", (event) => {
 // the one directory the guest already has on PATH. Only paths it does
 // not already have are fetched.
 async function addToRunningVM() {
-  if (rustExperiment)
+  if (guardedExperiment)
     throw new Error(
-      "Reset the Rust experiment before another closure; live extension is disabled",
+      "Reset the Linux experiment before another closure; live extension is disabled",
     );
   // Count only new selected roots when extending an existing guest.
   const entries = [...selection.values()].filter(
@@ -1190,14 +1190,16 @@ const page = {
 registerTools(page);
 
 // Opt-in experiment only. Removing a VM without terminating pthreads is not cancel.
-if (rustExperiment) {
+if (guardedExperiment) {
   const warning = document.createElement("p");
   warning.setAttribute("role", "note");
   warning.textContent =
-    "Experimental Rust feasibility test, not supported Rust execution. Large historical toolchains have made the test browser unresponsive; closing the tab may be necessary. Modern Rust exceeds the size budget. Small-package controls passed, but Rust compilation has not been verified.";
+    experiment === "lua"
+      ? "Experimental Lua Linux runner. One supervised command per fresh VM; download and execution budgets apply. Rust remains unverified. This is not yet integrated into pastebin."
+      : "Experimental Rust feasibility test, not supported Rust execution. Large historical toolchains have made the test browser unresponsive; closing the tab may be necessary. Modern Rust exceeds the size budget. Small-package controls passed, but Rust compilation has not been verified.";
   bootButton.parentElement.prepend(warning);
   const cancel = document.createElement("button");
-  cancel.textContent = "Cancel Rust experiment";
+  cancel.textContent = "Cancel Linux experiment";
   cancel.addEventListener("click", () => {
     archiveAbort?.abort();
     vm?.dispose();

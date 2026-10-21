@@ -358,7 +358,9 @@ export async function startVM({
       if (disposed) return;
       disposed = true;
       mod.PThread.terminateAllThreads();
-      ui.terminal.dispose?.();
+      // Preserve the inert terminal until page reset: queued PTY writes can
+      // arrive after worker termination and ghostty rejects writes after dispose.
+      // The CPU-owning pthreads above are still terminated immediately.
       delete window.trynix;
     },
 

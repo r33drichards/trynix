@@ -57,8 +57,9 @@ export function readUrl() {
 export function writeUrl({ pkgs, paths, caches = [] }, { boot = false } = {}) {
   const params = new URLSearchParams();
   // Preserve the opt-in safety gates across selection changes and reset.
-  if (new URLSearchParams(location.search).get("experiment") === "rust")
-    params.set("experiment", "rust");
+  const experiment = new URLSearchParams(location.search).get("experiment");
+  if (["rust", "lua"].includes(experiment))
+    params.set("experiment", experiment);
   for (const { attr, version } of pkgs) {
     params.append(
       PARAM_PKG,
