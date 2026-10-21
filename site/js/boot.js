@@ -336,9 +336,18 @@ export async function startVM({
     slave,
   };
 
+  let disposed = false;
   return {
     terminal: ui.terminal,
     share,
+    // Irreversible stop of all Emscripten pthread workers, not a shell interrupt.
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      mod.PThread.terminateAllThreads();
+      ui.terminal.dispose?.();
+      delete window.trynix;
+    },
 
     // Finish the share and let QEMU run. `roots` are the basenames the
     // reader selected, in selection order. Resolves when the guest is

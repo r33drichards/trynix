@@ -56,6 +56,9 @@ export function readUrl() {
 // only the reload path wants it automatic.
 export function writeUrl({ pkgs, paths, caches = [] }, { boot = false } = {}) {
   const params = new URLSearchParams();
+  // Preserve the opt-in safety gates across selection changes and reset.
+  if (new URLSearchParams(location.search).get("experiment") === "rust")
+    params.set("experiment", "rust");
   for (const { attr, version } of pkgs) {
     params.append(
       PARAM_PKG,
