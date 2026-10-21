@@ -796,7 +796,13 @@ async function boot() {
             })
           : await fetchNar(info, (n) => closureRow.add(n), telemetry.cacheRead);
         const vm = await vmPromise;
-        vm.share.write(basenameOf(info), entries);
+        if (rustExperiment)
+          await vm.share.writeCooperatively(
+            basenameOf(info),
+            entries,
+            archiveAbort.signal,
+          );
+        else vm.share.write(basenameOf(info), entries);
       },
     ).then(() => closureRow.done());
 
@@ -837,12 +843,17 @@ async function boot() {
           throw new Error("Invalid command deadline");
         commandStarted = true;
         try {
-          return await runGuestWithDeadline(
+          const result = await runGuestWithDeadline(
             runningVM,
             driver,
             command,
             Math.min(timeoutMs, 120000),
           );
+          log(`Rust POC command result: ${JSON.stringify(result)}`);
+          return result;
+        } catch (error) {
+          log(`Rust POC command failed: ${error.message}`);
+          throw error;
         } finally {
           vm = null;
           vmStarted = false;

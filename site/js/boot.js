@@ -22,6 +22,7 @@ import {
   Precedence,
   programsOf,
   writeEntries,
+  writeEntriesCooperatively,
 } from "./store.js";
 import { openTerminal } from "./terminal.js";
 import { guestDriver } from "./agent.js";
@@ -186,6 +187,18 @@ function storeShare(FS) {
         return;
       }
       writeEntries(FS, `${STORE_DIR}/${basename}`, entries);
+      programs.set(basename, programsOf(entries));
+    },
+
+    // Cooperative host writes let Cancel run between bounded entry batches.
+    async writeCooperatively(basename, entries, signal) {
+      if (programs.has(basename)) return;
+      await writeEntriesCooperatively(
+        FS,
+        `${STORE_DIR}/${basename}`,
+        entries,
+        signal,
+      );
       programs.set(basename, programsOf(entries));
     },
 

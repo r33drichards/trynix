@@ -7,7 +7,7 @@ self.onmessage = async ({ data: { info, maxBytes } }) => {
       info,
       (bytes) => postMessage({ type: "progress", bytes }),
       (source, bytes) => postMessage({ type: "cache", source, bytes }),
-      { maxBytes },
+      { maxBytes, maxUnpackedBytes: 300 * 1024 ** 2 },
     );
     const buffers = [
       ...new Set(entries.filter((x) => x.data).map((x) => x.data.buffer)),
