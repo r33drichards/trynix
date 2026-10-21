@@ -45,5 +45,28 @@ Queued PTY output caused a Ghostty error after terminal disposal. Revised
 cleanup terminates QEMU pthreads immediately but retains the inert terminal
 until page reset, avoiding writes to a destroyed render target.
 
-Infinite-loop deadline and manual cancellation tests on the revised preview
-are pending until recorded below.
+## Revised preview checks
+
+Railway deployed code revision `daf86d3093d33fe86095e3c7bd128ab0e441773d`
+successfully. Public HTTP 200, COOP same-origin and COEP require-corp verified.
+
+A supervised infinite-loop command with a 10,000 ms deadline produced
+`Linux POC command failed: Guest deadline exceeded`; the page remained
+responsive and read-console confirmed no guest was running afterward.
+The WebMCP call itself timed out, so the retained page log was inspected,
+not the command repeated. Loop-entry output was not retained: this proves
+command deadline cleanup, not a measured ten seconds of Lua CPU execution.
+Clicking Cancel then reset the page to its unbooted Lua selection.
+
+Manual cancellation passed on a separate fresh VM: the terminal ran
+`lua -e 'io.write("LOOP_STARTED\n"); io.flush(); while true do end'`.
+Read-console showed the separate `LOOP_STARTED` output and no returned prompt.
+Clicking Cancel Linux experiment immediately reset to the unbooted page.
+
+Local suite: 72 tests, 70 passed, two existing Nix-vendored bzip2 tests skipped.
+No controlled cold/warm benchmark or browser memory measurement was made.
+The browser still reserves the same QEMU memory as the Rust experiment;
+Lua only makes the fetched toolchain much smaller.
+
+Preview: https://rust-poc-static-preview.up.railway.app/?experiment=lua&pkg=lua%405.5.1
+It remains an isolated, billable static preview, not a production deployment.
