@@ -1,0 +1,19 @@
+qemu-system-x86_64.wasm: warning: TCG doesn't support requested feature: CPUID.01H:ECX.pcid [bit 17]
+qemu-system-x86_64.wasm: warning: TCG doesn't support requested feature: CPUID.01H:ECX.x2apic [bit 21]
+qemu-system-x86_64.wasm: warning: TCG doesn't support requested feature: CPUID.01H:ECX.tsc-deadline [bit 24]
+qemu-system-x86_64.wasm: warning: TCG doesn't support requested feature: CPUID.07H:EBX.invpcid [bit 10]
+qemu-system-x86_64.wasm: warning: TCG doesn't support requested feature: CPUID.07H:EDX.spec-ctrl [bit 26]
+c[?7l[2J[0mSeaBIOS (version rel-1.16.3-0-ga6ed6b701f0a-prebuilt.qemu.org)
+Booting from ROM...
+c[?7l[2Jtrynix: clocksource tsc
+trynix: waiting for the store
+ready
+
+trynix: welcome to the multiverse
+lua -e 'print(string.char(76,85,65,95,72,69,76,76,79,95,80,65,83,83))'; echo LUA_EXIT:$?
+
+~ # lua -e 'print(string.char(76,85,65,95,72,69,76,76,79,95,80,65,83,83))'; echo
+
+ LUA_EXIT:$?
+LUA_HELLO_PASS
+LUA_EXIT:0

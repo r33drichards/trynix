@@ -1,0 +1,115 @@
+{
+  "created_utc": "2026-10-23T09:14:09.408274+00:00",
+  "scope": "Local source/provenance collection only. No builds, installs, binary execution, uploads or deployments. Engineering inventory, not legal assurance.",
+  "pinned_trynix_commit": "2da7f8ac0bdd922ff29b17c8327c00c1d39e1355",
+  "pinned_nixpkgs_commit": "0968519e14f7aa7d3e9b389682bd74d2b51c8ce8",
+  "nixpkgs_nar_hash_verified": true,
+  "components": {
+    "linux": {
+      "binary": "guest/bzImage",
+      "binary_sha256": "a5e995aa1c72fa8963fe8b11af5a5612bf7df11c5e88d1effde59e4224902349",
+      "version": "7.2.5",
+      "source": "archives/linux-7.2.5.tar.xz",
+      "license": "GPL-2.0-only WITH Linux-syscall-note; additional per-file notices retained in source",
+      "notices": [
+        "notices/linux/COPYING",
+        "notices/linux/LICENSES/"
+      ],
+      "config": [
+        "inspection/linux-7.2.5.embedded.config",
+        "recipes/trynix-guest/linux_x86_config",
+        "recipes/trynix-guest/kernel-fragment.config"
+      ],
+      "build_scripts": [
+        "recipes/guest.nix",
+        "recipes/flake.nix",
+        "recipes/flake.lock",
+        "archives/nixpkgs-0968519e14f7aa7d3e9b389682bd74d2b51c8ce8.tar.gz"
+      ],
+      "patches": "No kernel source patches declared in pinned guest recipe.",
+      "matching_evidence": [
+        "inspection/trynix-guest-pin-verification.json",
+        "inspection/guest-inspection.json"
+      ],
+      "remaining": "Publish/attach corresponding source, configuration/build instructions and notices with binary distribution. No kernel rebuild performed or needed merely to retrieve these materials."
+    },
+    "busybox": {
+      "binary": "initramfs:/bin/busybox",
+      "binary_sha256": "e9c6eaaeb87f1c4b2dbd6894d1981f148843b31ece8446a15eb3c5c18635ad98",
+      "version": "1.37.0",
+      "source": "archives/busybox-1.37.0.tar.bz2",
+      "license": "GPL-2.0-only per pinned Nixpkgs metadata; upstream file-specific notices retained",
+      "notices": [
+        "notices/busybox/LICENSE"
+      ],
+      "build_recipe": "recipes/nixpkgs/pkgs/os-specific/linux/busybox/default.nix",
+      "config_recipe": "defconfig plus Nixpkgs configurePhase overrides, enableStatic=true/useMusl=true via pkgsStatic; complete pinned package set retained. No additional override appears in pinned TryNix guest recipe.",
+      "patches_in_order": [
+        "recipes/nixpkgs/pkgs/os-specific/linux/busybox/busybox-in-store.patch",
+        "recipes/nixpkgs/pkgs/os-specific/linux/busybox/fix-aarch64-sha1.patch",
+        "patches/busybox/CVE-2023-39810.normalized.patch",
+        "patches/busybox/CVE-2026-26157_CVE-2026-26158.normalized.patch",
+        "patches/busybox/CVE-2026-26157_CVE-2026-26158-2.normalized.patch",
+        "patches/busybox/busybox-1.37-fix-syslogd.normalized.patch",
+        "recipes/nixpkgs/pkgs/os-specific/linux/busybox/build-system-buffer-overflow.patch",
+        "recipes/nixpkgs/pkgs/os-specific/linux/busybox/CVE-2025-60876.patch",
+        "recipes/nixpkgs/pkgs/os-specific/linux/busybox/clang-cross.patch (conditional hostPlatform != buildPlatform)"
+      ],
+      "matching_evidence": [
+        "inspection/trynix-guest-pin-verification.json",
+        "inspection/busybox-cache-verification.json",
+        "inspection/busybox-config-inspection.json"
+      ],
+      "uncertainty": "Original .drv unavailable from cache.nixos.org. No bbconfig applet/symbol or embedded .config found; compressed payloads were inspected as data. Configuration-generation source/scripts are retained; absence of .drv or bit-identical rebuild is not itself stated by GPLv2 as a condition. Exact original generated configuration and linked-musl identity were not independently rebuilt/attested.",
+      "remaining": "Include complete source archive, all applicable patches, config-generation/build scripts and GPL notices in the source offering; do not substitute vanilla BusyBox archive alone."
+    },
+    "musl": {
+      "binary": "static libc portions within initramfs:/bin/busybox and /bin/reseed",
+      "version": "1.2.6 inferred from pinned Nixpkgs recipe, not independently attested by binary",
+      "source": "archives/musl-1.2.6.tar.gz",
+      "license": "MIT with additional file-specific notices described in COPYRIGHT/source",
+      "notices": [
+        "notices/musl/COPYRIGHT"
+      ],
+      "build_recipe": "recipes/nixpkgs/pkgs/by-name/mu/musl/package.nix",
+      "patches": [
+        "patches/musl/300-relative.patch",
+        "patches/musl/CVE-2026-6042.patch",
+        "patches/musl/CVE-2026-40200.patch"
+      ],
+      "auxiliary_sources": "recipes/musl-extra; all five referenced files match pinned hashes; some are development headers/tools or x86_32-specific and are not proven included in these x86_64 binaries.",
+      "uncertainty": "Recipe implies musl1.2.6 for pkgsStatic and BusyBox output identity explicitly says musl. Exact libc object provenance within either static binary is not independently established; no link map or original derivation was recovered.",
+      "remaining": "Carry applicable musl copyright/permission notices. MIT does not itself require source offering or exact rebuild. Include retained musl source and patches conservatively in complete-source materials; verify version if independently stronger attestation is required."
+    },
+    "initramfs": {
+      "binary": "guest/initramfs.cpio.gz",
+      "binary_sha256": "e5ec03dc67fef7368dd4439b0172345573b15ef8b54e5ddcc3b7f578dcb2b655",
+      "source": [
+        "recipes/trynix-guest/init",
+        "recipes/trynix-guest/reseed.c",
+        "recipes/guest.nix",
+        "recipes/flake.nix",
+        "recipes/flake.lock"
+      ],
+      "license": "TryNix MIT for its original init/reseed/recipes; aggregated component licenses remain applicable",
+      "notices": [
+        "notices/TryNix-LICENSE"
+      ],
+      "matching_evidence": "405 cpio entries, exactly three regular files: bin/busybox, bin/reseed, init. init byte-identical to pinned source. Entire archive hash matches pinned upstream engine-pins.json.",
+      "uncertainty": "reseed was not recompiled for a byte comparison; static runtime correspondence is inferred from recipe.",
+      "remaining": "Package TryNix notice and aggregate component notices/source access. Preserve deterministic archive assembly recipe; no independent license is inferred merely from the cpio container."
+    }
+  },
+  "practical_source_delivery": "Prefer accompanying public package with complete corresponding source materials / equivalent source-copy access from the same designated distribution place, rather than starting a written-offer obligation. Publication/attachment itself not done by this task.",
+  "not_automatic_license_blockers": [
+    "Original .drv missing",
+    "No bit-identical rebuild",
+    "Not collecting source of every non-shipped host compiler/build dependency"
+  ],
+  "outside_scope": [
+    "QEMU and linked host/WASIX dependencies",
+    "BIOS/option-ROM provenance",
+    "Lua mapped closure source/notices",
+    "Final public package contents and source hosting/access verification"
+  ]
+}

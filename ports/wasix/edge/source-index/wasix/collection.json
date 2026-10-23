@@ -1,0 +1,300 @@
+{
+  "collected_utc": "2026-10-23",
+  "scope": "Source/notices/metadata only. No binary downloads, installations, builds, uploads or runtime edits.",
+  "wasix_libc_commit": "2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60",
+  "llvm_runtime_gitlink": "6bb93a243f6d15855f485f5aec3810d9e2de150d",
+  "llvm_compiler_commit": "98c00cb849c94742b2b29918bb414d236c83ae97",
+  "artifacts": [
+    {
+      "path": "WASI-bac366c8aeb69cacfea6c4c04a503191bf1cede1.tar.gz",
+      "bytes": 162280,
+      "sha256": "ad49685e5f2e4333909f72eae1c63dfde0dfe500e7ab2ddd17f5bc9e2d323ce3",
+      "url": "https://github.com/WebAssembly/WASI/archive/bac366c8aeb69cacfea6c4c04a503191bf1cede1.tar.gz",
+      "method": "downloaded public source archive or metadata"
+    },
+    {
+      "path": "installed-exnref-runtime-hashes.json",
+      "bytes": 2544,
+      "sha256": "34ecc982cd3fb7baf14591d0550abad803f8edd80793fe2a51a3df1eb43ef238",
+      "method": "generated local installed-file evidence, not downloaded"
+    },
+    {
+      "path": "llvm-compiler-release-21.1.206.json",
+      "bytes": 19988,
+      "sha256": "e45447b87e957354125cdcc673608f53483886901dd199e8eb1bc49bd7d36989",
+      "url": "https://api.github.com/repos/wasix-org/llvm-project/releases/tags/21.1.206",
+      "method": "downloaded public source archive or metadata"
+    },
+    {
+      "path": "llvm-compiler-tag-21.1.206.json",
+      "bytes": 391,
+      "sha256": "8f0b4ec330efe411fe7eb335b5367939b09916f0fde37dc6ea846aa739749a60",
+      "url": "https://api.github.com/repos/wasix-org/llvm-project/git/ref/tags/21.1.206",
+      "method": "downloaded public source archive or metadata"
+    },
+    {
+      "path": "llvm-runtime-commit.json",
+      "bytes": 1343,
+      "sha256": "628689ac3a953c6e7cae044e187fccb6542de49ce03009f7fdd71adfe0fb8d4e",
+      "url": "https://api.github.com/repos/llvm/llvm-project/git/commits/6bb93a243f6d15855f485f5aec3810d9e2de150d",
+      "method": "downloaded public source archive or metadata"
+    },
+    {
+      "path": "llvm-runtime-selected/compiler-rt/CREDITS.TXT",
+      "bytes": 1049,
+      "sha256": "a9901f47a089da41e4690682d00ce4cedaa2baf41fedbe79beee366d43ac2461",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/6bb93a243f6d15855f485f5aec3810d9e2de150d/compiler-rt/CREDITS.TXT",
+      "method": "downloaded exact-revision notice"
+    },
+    {
+      "path": "llvm-runtime-selected/compiler-rt/LICENSE.TXT",
+      "bytes": 16708,
+      "sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/6bb93a243f6d15855f485f5aec3810d9e2de150d/compiler-rt/LICENSE.TXT",
+      "method": "downloaded exact-revision notice"
+    },
+    {
+      "path": "llvm-runtime-selected/libcxx/CREDITS.TXT",
+      "bytes": 4124,
+      "sha256": "054e099bf5954c8821b880f5751d2fbf221bf43cf7c57ac1c2c5ff6263d6d9c3",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/6bb93a243f6d15855f485f5aec3810d9e2de150d/libcxx/CREDITS.TXT",
+      "method": "downloaded exact-revision notice"
+    },
+    {
+      "path": "llvm-runtime-selected/libcxx/LICENSE.TXT",
+      "bytes": 16703,
+      "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/6bb93a243f6d15855f485f5aec3810d9e2de150d/libcxx/LICENSE.TXT",
+      "method": "downloaded exact-revision notice"
+    },
+    {
+      "path": "llvm-runtime-selected/libcxxabi/CREDITS.TXT",
+      "bytes": 1660,
+      "sha256": "a259fff28a51623f14917dd68f97f3af7804984087ddc1bfd8196d08ebb75b83",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/6bb93a243f6d15855f485f5aec3810d9e2de150d/libcxxabi/CREDITS.TXT",
+      "method": "downloaded exact-revision notice"
+    },
+    {
+      "path": "llvm-runtime-selected/libcxxabi/LICENSE.TXT",
+      "bytes": 16706,
+      "sha256": "e2b35be49f7284a45b7baca8fc7b3ab7440e7902392b2528a457816b5bb2a15c",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/6bb93a243f6d15855f485f5aec3810d9e2de150d/libcxxabi/LICENSE.TXT",
+      "method": "downloaded exact-revision notice"
+    },
+    {
+      "path": "llvm-runtime-selected/libunwind/LICENSE.TXT",
+      "bytes": 16706,
+      "sha256": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/6bb93a243f6d15855f485f5aec3810d9e2de150d/libunwind/LICENSE.TXT",
+      "method": "downloaded exact-revision notice"
+    },
+    {
+      "path": "llvm-runtime-selected/llvm/LICENSE.TXT",
+      "bytes": 15141,
+      "sha256": "8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/6bb93a243f6d15855f485f5aec3810d9e2de150d/llvm/LICENSE.TXT",
+      "method": "downloaded exact-revision notice"
+    },
+    {
+      "path": "submodule-notices/WASI-bac366c8aeb69cacfea6c4c04a503191bf1cede1/tools/witx/LICENSE",
+      "bytes": 581,
+      "sha256": "8a29d5e911226e86f898fc689d939b2c6b2e3b238343fcbf1d0b4e7dc3c7ea40",
+      "archive": "WASI-bac366c8aeb69cacfea6c4c04a503191bf1cede1.tar.gz",
+      "archive_member": "tools/witx/LICENSE",
+      "method": "extracted notice; no execution"
+    },
+    {
+      "path": "submodule-notices/wasix-witx-0dfbd35a0f30f3fe7fd3b3ab5a50dc4191d5caed/tools/witx/LICENSE",
+      "bytes": 581,
+      "sha256": "8a29d5e911226e86f898fc689d939b2c6b2e3b238343fcbf1d0b4e7dc3c7ea40",
+      "archive": "wasix-witx-0dfbd35a0f30f3fe7fd3b3ab5a50dc4191d5caed.tar.gz",
+      "archive_member": "tools/witx/LICENSE",
+      "method": "extracted notice; no execution"
+    },
+    {
+      "path": "wasi-submodule.json",
+      "bytes": 954,
+      "sha256": "570ff41beb8718840734748a57be7563ccb3bead6adcb59c209a6b2ba179ea2e",
+      "url": "https://api.github.com/repos/wasix-org/wasix-libc/contents/tools/wasi-headers/WASI?ref=2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60",
+      "method": "downloaded public source archive or metadata"
+    },
+    {
+      "path": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "bytes": 1677814,
+      "sha256": "a0ada4fe6bfb8311a681acc09829e6256d1ef8ea9f902770e26732f8fafa4b48",
+      "url": "https://github.com/wasix-org/wasix-libc/archive/2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "method": "downloaded public source archive or metadata"
+    },
+    {
+      "path": "wasix-libc-llvm-submodule.json",
+      "bytes": 956,
+      "sha256": "7f88c48215f5fd09ebb12a28ee7c9f6e00bc2ef119c36db24a3e4a40fb965d48",
+      "url": "https://api.github.com/repos/wasix-org/wasix-libc/contents/tools/llvm-project?ref=2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60",
+      "method": "downloaded public source archive or metadata"
+    },
+    {
+      "path": "wasix-libc-release-v2026-10-02.1.json",
+      "bytes": 12046,
+      "sha256": "23bbba1dbc841c5d493bd6be05dc9200f7eec113666a15bf7bd0e89df28b177a",
+      "url": "https://api.github.com/repos/wasix-org/wasix-libc/releases/tags/v2026-10-02.1",
+      "method": "downloaded public source archive or metadata"
+    },
+    {
+      "path": "wasix-libc-selected/.github/workflows/build_cxx_sysroot.yml",
+      "bytes": 3148,
+      "sha256": "95a983b78aead6da84e742dd28ba267984aae2824cadfa31b487a245850f741f",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": ".github/workflows/build_cxx_sysroot.yml",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/.github/workflows/release.yml",
+      "bytes": 1767,
+      "sha256": "78d5f5a9a0590ff52cc0817477dd6fbb53f31f7cb1856aa7de8354fcff568ce3",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": ".github/workflows/release.yml",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/.gitmodules",
+      "bytes": 344,
+      "sha256": "f7cd70b6d2108f14acd9cb5ce352cbea9150baa5c526b95956b50aad87537245",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": ".gitmodules",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/LICENSE",
+      "bytes": 829,
+      "sha256": "da1128117561950db9e04201ce9ac3f0bd9e3baf852289211608b73098d51ac0",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": "LICENSE",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/LICENSE-APACHE",
+      "bytes": 10847,
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": "LICENSE-APACHE",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/LICENSE-APACHE-LLVM",
+      "bytes": 12243,
+      "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": "LICENSE-APACHE-LLVM",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/LICENSE-MIT",
+      "bytes": 1023,
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": "LICENSE-MIT",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/Makefile",
+      "bytes": 29111,
+      "sha256": "c9eed82313e324721262d620fe9956678c1635da30ed8cd2e10a8110e14b6eab",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": "Makefile",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/Makefile-eh",
+      "bytes": 30032,
+      "sha256": "27795ae53eafcf4abd737e80485bb04c8616bff07b557f04445f374c8fcd7e37",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": "Makefile-eh",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/build32-exnref-eh.sh",
+      "bytes": 91,
+      "sha256": "ecbdacafdeedc5f579e5105862d126524c7e984e67c748a43189722b632bc178",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": "build32-exnref-eh.sh",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/build32-general.sh",
+      "bytes": 9267,
+      "sha256": "37490c739f7684142a612915429dbbac43697537a814859ffb520f218b7b3291",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": "build32-general.sh",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/dlmalloc/src/malloc.c",
+      "bytes": 224814,
+      "sha256": "782e50162b350dd87073354fd3d26f80bce0c1b6ae65f44b3a68e60886e62202",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": "dlmalloc/src/malloc.c",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/emmalloc/emmalloc.c",
+      "bytes": 58514,
+      "sha256": "e6f5b9ef76335279403c9b9826e06c05c7baa36c67dc03ceba75000bd16c141c",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": "emmalloc/emmalloc.c",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/libc-bottom-half/cloudlibc/LICENSE",
+      "bytes": 1292,
+      "sha256": "c8b789cf5a746611e6300a0cc7750dbf92b61912a709d04e639245f7290656d0",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": "libc-bottom-half/cloudlibc/LICENSE",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/libc-top-half/musl/COPYRIGHT",
+      "bytes": 6204,
+      "sha256": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": "libc-top-half/musl/COPYRIGHT",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/tools/wasi-headers/LICENSE",
+      "bytes": 12243,
+      "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": "tools/wasi-headers/LICENSE",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-selected/tools/wasix-headers/LICENSE",
+      "bytes": 12243,
+      "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5",
+      "archive": "wasix-libc-2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60.tar.gz",
+      "archive_member": "tools/wasix-headers/LICENSE",
+      "method": "extracted selected file; no execution"
+    },
+    {
+      "path": "wasix-libc-tag-v2026-10-02.1.json",
+      "bytes": 404,
+      "sha256": "ba85d2fc5308dee427b276de7fd43f4870186d340b925e20ae247e553a0ce592",
+      "url": "https://api.github.com/repos/wasix-org/wasix-libc/git/ref/tags/v2026-10-02.1",
+      "method": "downloaded public source archive or metadata"
+    },
+    {
+      "path": "wasix-witx-0dfbd35a0f30f3fe7fd3b3ab5a50dc4191d5caed.tar.gz",
+      "bytes": 693948,
+      "sha256": "845e8b60ff818aa92966b7e122b4f1a508e8d5bfb76062538cd6f498bc9f87c6",
+      "url": "https://github.com/wasix-org/wasix-witx/archive/0dfbd35a0f30f3fe7fd3b3ab5a50dc4191d5caed.tar.gz",
+      "method": "downloaded public source archive or metadata"
+    },
+    {
+      "path": "wasix-witx-submodule.json",
+      "bytes": 981,
+      "sha256": "3e8f239edeb8fa38af7b2157e41b3a881251be4790f1b8946af57b9f2f63bfa2",
+      "url": "https://api.github.com/repos/wasix-org/wasix-libc/contents/tools/wasix-headers/WASI?ref=2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60",
+      "method": "downloaded public source archive or metadata"
+    }
+  ]
+}

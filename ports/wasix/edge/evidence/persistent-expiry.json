@@ -1,0 +1,9 @@
+{
+  "invalid_fails_closed": true,
+  "too_far_fails_closed": true,
+  "missing_expiry_starts_persistent": true,
+  "active_expiry_cancels_reaps": true,
+  "elapsed_seconds": 2.1514525189995766,
+  "expired_admission_410": true,
+  "result": "passed"
+}

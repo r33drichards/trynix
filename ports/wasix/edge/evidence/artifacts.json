@@ -1,0 +1,9 @@
+{
+  "scope": "local WASIX HTTP supervisor; not Edge validation",
+  "supervisor_sha256": "9e4c7f26e15d331dd2c74c95ce2f6a24d6c408fb49fca686c6350ad8143344b0",
+  "source_sha256": "4ae445e678ee56400265a8511ea96a0582a69155a3de9bd579156fdafa54aa9e",
+  "qemu_sha256": "ae38c921b6d0b9635c4de494b1fcad7eca0a98ed0c397aec25c3c2e593b40517",
+  "runtime": "Wasmer 7.5.0",
+  "host_compilation_cache": "reused",
+  "packaged_build_matches_guest_test_artifact": true
+}

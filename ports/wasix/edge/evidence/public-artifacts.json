@@ -1,0 +1,9 @@
+{
+  "supervisor_sha256": "62a654e398227d1f3400101ef794c31c773e304a1a9866897ae484753872039e",
+  "source_sha256": "c77fcf3df0c096cc0e8c0fb40967c99dff4dadd816ddd516137d8e3d6691bace",
+  "webc_sha256": "630d37fede9df2d9357392923f69f79078d5bf9ad292c971e7450563c7969cb6",
+  "webc_bytes": 61885265,
+  "scope": "actual local packaged synchronous Linux/Lua HTTP pass; public transport/quarantine passed; not Edge validation",
+  "input_part_max_bytes": 8192,
+  "output_max_bytes": 131072
+}

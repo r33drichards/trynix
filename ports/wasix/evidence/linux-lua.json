@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "linux_handshake": true,
+  "lua_submitted": true,
+  "elapsed_seconds": 63.519,
+  "returncode": -9,
+  "host_peak_rss_kib": 860888,
+  "wasm_bytes": 12630670,
+  "guest_ram_mib": 512,
+  "tcg_cache_mib": 16,
+  "log": "linux-lua-serial.txt",
+  "scope": "local cold boot; not snapshot restore or Edge validation",
+  "cleanup": "Supervisor SIGKILL after Lua exit0; not workload failure",
+  "artifact_sha256": "cf295debf9910fd74169b77bc8f1179613ed545786c1db806b3a7ef41e50ef6a"
+}
