@@ -1,0 +1,1151 @@
+--- a/accel/tcg/cpu-exec.c
++++ b/accel/tcg/cpu-exec.c
+@@ -18,6 +18,13 @@
+  */
+ 
+ #include "qemu/osdep.h"
++/* WASIX EH currently lowers setjmp but not sigsetjmp. These sites request
++ * no signal-mask saving, so plain setjmp has the same required semantics. */
++#ifdef __wasi__
++#define QEMU_CPU_SETJMP(env) setjmp(env)
++#else
++#define QEMU_CPU_SETJMP(env) sigsetjmp(env, 0)
++#endif
+ #include "qemu/qemu-print.h"
+ #include "qapi/error.h"
+ #include "qapi/type-helpers.h"
+@@ -573,7 +580,7 @@
+     uint32_t flags, cflags;
+     int tb_exit;
+ 
+-    if (sigsetjmp(cpu->jmp_env, 0) == 0) {
++    if (QEMU_CPU_SETJMP(cpu->jmp_env) == 0) {
+         start_exclusive();
+         g_assert(cpu == current_cpu);
+         g_assert(!cpu->running);
+@@ -1051,7 +1058,7 @@
+ static int cpu_exec_setjmp(CPUState *cpu, SyncClocks *sc)
+ {
+     /* Prepare setjmp context for exception handling. */
+-    if (unlikely(sigsetjmp(cpu->jmp_env, 0) != 0)) {
++    if (unlikely(QEMU_CPU_SETJMP(cpu->jmp_env) != 0)) {
+         cpu_exec_longjmp_cleanup(cpu);
+     }
+ 
+--- a/accel/tcg/translate-all.c
++++ b/accel/tcg/translate-all.c
+@@ -18,6 +18,13 @@
+  */
+ 
+ #include "qemu/osdep.h"
++/* These jump sites do not save the host signal mask. WASIX EH requires
++ * setjmp for compiler lowering; sigsetjmp is not lowered by wasixcc 0.4.7. */
++#ifdef __wasi__
++#define QEMU_CPU_SETJMP(env) setjmp(env)
++#else
++#define QEMU_CPU_SETJMP(env) sigsetjmp(env, 0)
++#endif
+ 
+ #include "trace.h"
+ #include "disas/disas.h"
+@@ -268,7 +275,7 @@
+                            vaddr pc, void *host_pc,
+                            int *max_insns, int64_t *ti)
+ {
+-    int ret = sigsetjmp(tcg_ctx->jmp_trans, 0);
++    int ret = QEMU_CPU_SETJMP(tcg_ctx->jmp_trans);
+     if (unlikely(ret != 0)) {
+         return ret;
+     }
+--- a/block/file-posix.c
++++ b/block/file-posix.c
+@@ -41,6 +41,9 @@
+ 
+ #include "scsi/pr-manager.h"
+ #include "scsi/constants.h"
++#ifdef __wasi__
++#include <sys/ioctl.h>
++#endif
+ 
+ #if defined(__APPLE__) && (__MACH__)
+ #include <sys/ioctl.h>
+--- a/chardev/meson.build
++++ b/chardev/meson.build
+@@ -14,8 +14,10 @@
+ ))
+ chardev_ss.add(when: 'CONFIG_POSIX', if_true: [files(
+   'char-fd.c',
+-  'char-pty.c',
+ ), util])
++if targetos != 'wasi'
++  chardev_ss.add(when: 'CONFIG_POSIX', if_true: files('char-pty.c'))
++endif
+ if targetos in ['linux', 'gnu/kfreebsd', 'freebsd', 'dragonfly']
+   chardev_ss.add(files('char-parallel.c'))
+ endif
+--- a/configure
++++ b/configure
+@@ -333,7 +333,9 @@
+ EOF
+ }
+ 
+-if check_define __linux__ ; then
++if check_define __wasi__ ; then
++  targetos=wasi
++elif check_define __linux__ ; then
+   targetos=linux
+ elif check_define _WIN32 ; then
+   targetos=windows
+--- a/fsdev/file-op-9p.h
++++ b/fsdev/file-op-9p.h
+@@ -16,6 +16,9 @@
+ 
+ #include <dirent.h>
+ #include <utime.h>
++#ifdef __wasi__
++#include "qemu/statfs-wasix.h"
++#endif
+ #include "qemu-fsdev-throttle.h"
+ #include "p9array.h"
+ 
+--- a/fsdev/qemu-fsdev.c
++++ b/fsdev/qemu-fsdev.c
+@@ -81,6 +81,7 @@
+             NULL
+         },
+     },
++#ifndef __wasi__
+     {
+         .name = "synth",
+         .ops = &synth_ops,
+@@ -100,6 +101,7 @@
+             NULL
+         },
+     },
++#endif
+ };
+ 
+ static int validate_opt(void *opaque, const char *name, const char *value,
+--- a/hw/9pfs/9p-local.c
++++ b/hw/9pfs/9p-local.c
+@@ -499,6 +499,9 @@
+ 
+ static int local_closedir(FsContext *ctx, V9fsFidOpenState *fs)
+ {
++#ifdef __wasi__
++    g_clear_pointer(&fs->dir.wasix_entry, g_free);
++#endif
+     return closedir(fs->dir.stream);
+ }
+ 
+@@ -532,6 +535,9 @@
+         return -1;
+     }
+     fs->dir.stream = stream;
++#ifdef __wasi__
++    fs->dir.wasix_entry = NULL;
++#endif
+     return 0;
+ }
+ 
+@@ -560,6 +566,15 @@
+     if (!entry) {
+         return NULL;
+     }
++#ifdef __wasi__
++    off_t cookie = telldir(fs->dir.stream);
++    if (cookie < 0) { return NULL; }
++    size_t size = offsetof(struct dirent, d_name) + strlen(entry->d_name) + 1;
++    fs->dir.wasix_entry = g_realloc(fs->dir.wasix_entry, size + sizeof(cookie));
++    memcpy(fs->dir.wasix_entry, entry, size);
++    memcpy((char *)fs->dir.wasix_entry + size, &cookie, sizeof(cookie));
++    entry = fs->dir.wasix_entry;
++#endif
+ #ifdef CONFIG_DARWIN
+     int off;
+     off = telldir(fs->dir.stream);
+@@ -1506,6 +1521,12 @@
+         return -1;
+     }
+ 
++#ifdef __wasi__
++    if (strcmp(sec_model, "none")) {
++        error_setg(errp, "WASIX local 9p currently requires security_model=none");
++        return -1;
++    }
++#endif
+     if (!strcmp(sec_model, "passthrough")) {
+         fse->export_flags |= V9FS_SM_PASSTHROUGH;
+     } else if (!strcmp(sec_model, "mapped") ||
+--- a/hw/9pfs/9p-util-stub.c
++++ b/hw/9pfs/9p-util-stub.c
+@@ -3,34 +3,40 @@
+ ssize_t fgetxattrat_nofollow(int dirfd, const char *path, const char *name,
+                              void *value, size_t size)
+ {
++    errno = ENOTSUP;
+     return -1;
+ }
+ 
+ ssize_t flistxattrat_nofollow(int dirfd, const char *filename,
+                               char *list, size_t size)
+ {
++    errno = ENOTSUP;
+     return -1;
+ }
+ 
+ ssize_t fremovexattrat_nofollow(int dirfd, const char *filename,
+                                 const char *name)
+ {
++    errno = ENOTSUP;
+     return -1;
+ }
+ 
+ int fsetxattrat_nofollow(int dirfd, const char *path, const char *name,
+                          void *value, size_t size, int flags)
+ {
++    errno = ENOTSUP;
+     return -1;
+ 
+ }
+ 
+ int qemu_mknodat(int dirfd, const char *filename, mode_t mode, dev_t dev)
+ {
++    errno = ENOTSUP;
+     return -1;
+ }
+ 
+ ssize_t fgetxattr(int fd, const char *name, void *value, size_t size)
+ {
++    errno = ENOTSUP;
+     return -1;
+ }
+--- a/hw/9pfs/9p-util.h
++++ b/hw/9pfs/9p-util.h
+@@ -53,17 +53,26 @@
+  */
+ static inline uint64_t host_dev_to_dotl_dev(dev_t dev)
+ {
+-#ifdef CONFIG_LINUX
++#if defined(CONFIG_LINUX)
+     return dev;
++#elif defined(__wasi__)
++    /* WASIX exports no host device nodes. */
++    return 0;
+ #else
+     return makedev_dotl(major(dev), minor(dev));
+ #endif
+ }
++
++#ifdef __wasi__
++#define makedev makedev_dotl
++#endif
+ 
+ /* Translates errno from host -> Linux if needed */
+ static inline int errno_to_dotl(int err) {
+ #if defined(CONFIG_LINUX) || defined(EMSCRIPTEN)
+     /* nothing to translate (Linux -> Linux) */
++#elif defined(__wasi__)
++#include "9p-errno-wasix.inc"
+ #elif defined(CONFIG_DARWIN)
+     /*
+      * translation mandatory for macOS hosts
+@@ -154,13 +163,13 @@
+ {
+     int fd, serrno, ret;
+ 
+-#ifndef CONFIG_DARWIN
++#if !defined(CONFIG_DARWIN) && defined(O_NOATIME)
+ again:
+ #endif
+     fd = qemu_openat(dirfd, name, flags | O_NOFOLLOW | O_NOCTTY | O_NONBLOCK,
+                      mode);
+     if (fd == -1) {
+-#ifndef CONFIG_DARWIN
++#if !defined(CONFIG_DARWIN) && defined(O_NOATIME)
+         if (errno == EPERM && (flags & O_NOATIME)) {
+             /*
+              * The client passed O_NOATIME but we lack permissions to honor it.
+@@ -211,7 +220,11 @@
+  */
+ static inline off_t qemu_dirent_off(struct dirent *dent)
+ {
+-#ifdef CONFIG_DARWIN
++#if defined(__wasi__)
++    off_t cookie;
++    memcpy(&cookie, dent->d_name + strlen(dent->d_name) + 1, sizeof(cookie));
++    return cookie;
++#elif defined(CONFIG_DARWIN)
+     return dent->d_seekoff;
+ #else
+     return dent->d_off;
+@@ -245,6 +258,9 @@
+         sz = offsetof(struct dirent, d_name) +
+                       strlen(dent->d_name) + 1;
+     }
++#ifdef __wasi__
++    sz += sizeof(off_t); /* local backend appends the directory cookie */
++#endif
+     return g_memdup(dent, sz);
+ }
+ 
+--- a/hw/9pfs/9p.c
++++ b/hw/9pfs/9p.c
+@@ -125,7 +125,18 @@
+      * We have same bits for P9_DOTL_READONLY, P9_DOTL_WRONLY
+      * and P9_DOTL_NOACCESS
+      */
++#ifdef __wasi__
++    /* WASIX access mode bits differ from Linux wire protocol bits. */
++    int oflags;
++    switch (flags & P9_DOTL_NOACCESS) {
++    case P9_DOTL_RDONLY: oflags = O_RDONLY; break;
++    case P9_DOTL_WRONLY: oflags = O_WRONLY; break;
++    case P9_DOTL_RDWR: oflags = O_RDWR; break;
++    default: oflags = O_EXEC; break; /* no read/write rights */
++    }
++#else
+     int oflags = flags & O_ACCMODE;
++#endif
+ 
+     DotlOpenflagMap dotl_oflag_map[] = {
+         { P9_DOTL_CREATE, O_CREAT },
+@@ -135,8 +146,10 @@
+         { P9_DOTL_APPEND, O_APPEND },
+         { P9_DOTL_NONBLOCK, O_NONBLOCK } ,
+         { P9_DOTL_DSYNC, O_DSYNC },
++#ifdef FASYNC
+         { P9_DOTL_FASYNC, FASYNC },
+-#ifndef CONFIG_DARWIN
++#endif
++#if !defined(CONFIG_DARWIN) && !defined(__wasi__)
+         { P9_DOTL_NOATIME, O_NOATIME },
+         /*
+          *  On Darwin, we could map to F_NOCACHE, which is
+@@ -177,8 +190,11 @@
+      * Filter the client open flags
+      */
+     flags = dotl_to_open_flags(oflags);
+-    flags &= ~(O_NOCTTY | O_ASYNC | O_CREAT);
+-#ifndef CONFIG_DARWIN
++    flags &= ~(O_NOCTTY | O_CREAT);
++#ifdef O_ASYNC
++    flags &= ~O_ASYNC;
++#endif
++#ifdef O_DIRECT
+     /*
+      * Ignore direct disk access hint until the server supports it.
+      */
+@@ -1259,7 +1275,11 @@
+     } else if (v9stat->mode & P9_STAT_MODE_DEVICE) {
+         v9fs_string_sprintf(&v9stat->extension, "%c %u %u",
+                 S_ISCHR(stbuf->st_mode) ? 'c' : 'b',
++#ifdef __wasi__
++                0u, 0u); /* WASIX does not expose host device numbers. */
++#else
+                 major(stbuf->st_rdev), minor(stbuf->st_rdev));
++#endif
+     } else if (S_ISDIR(stbuf->st_mode) || S_ISREG(stbuf->st_mode)) {
+         v9fs_string_sprintf(&v9stat->extension, "%s %lu",
+                 "HARDLINKCOUNT", (unsigned long)stbuf->st_nlink);
+@@ -3973,7 +3993,7 @@
+  * Linux guests.
+  */
+ #define P9_XATTR_SIZE_MAX 65536
+-#elif defined(EMSCRIPTEN)
++#elif defined(EMSCRIPTEN) || defined(__wasi__)
+ /* No support for xattr */
+ #define P9_XATTR_SIZE_MAX 0
+ #else
+--- a/hw/9pfs/9p.h
++++ b/hw/9pfs/9p.h
+@@ -196,6 +196,9 @@
+ 
+ typedef struct V9fsDir {
+     DIR *stream;
++#ifdef __wasi__
++    struct dirent *wasix_entry; /* owned copy with trailing telldir cookie */
++#endif
+     P9ProtoVersion proto_version;
+     /* readdir mutex type used for 9P2000.u protocol variant */
+     CoMutex readdir_mutex_u;
+--- a/hw/9pfs/meson.build
++++ b/hw/9pfs/meson.build
+@@ -2,8 +2,6 @@
+ fs_ss.add(files(
+   '9p-local.c',
+   '9p-posix-acl.c',
+-  '9p-proxy.c',
+-  '9p-synth.c',
+   '9p-xattr-user.c',
+   '9p-xattr.c',
+   '9p.c',
+@@ -13,6 +11,9 @@
+   'coth.c',
+   'coxattr.c',
+ ))
++if targetos != 'wasi'
++  fs_ss.add(files('9p-proxy.c', '9p-synth.c'))
++endif
+ fs_ss.add(when: 'CONFIG_LINUX', if_true: files('9p-util-linux.c'))
+ fs_ss.add(when: 'CONFIG_DARWIN', if_true: files('9p-util-darwin.c'))
+ fs_ss.add(when: 'CONFIG_XEN_BUS', if_true: files('xen-9p-backend.c'))
+--- a/hw/misc/pc-testdev.c
++++ b/hw/misc/pc-testdev.c
+@@ -129,7 +129,7 @@
+ 
+     /* We might not be able to get the full page, only mprotect what we actually
+        have mapped */
+-#if defined(CONFIG_POSIX)
++#if defined(CONFIG_POSIX) && !defined(__wasi__)
+     mprotect(a, page, PROT_NONE);
+     mprotect(a, page, PROT_READ|PROT_WRITE);
+ #endif
+--- a/include/qemu/cacheflush.h
++++ b/include/qemu/cacheflush.h
+@@ -19,7 +19,7 @@
+  * mappings of the same physical page(s).
+  */
+ 
+-#if defined(__i386__) || defined(__x86_64__) || defined(__s390__) || defined(EMSCRIPTEN)
++#if defined(__i386__) || defined(__x86_64__) || defined(__s390__) || defined(EMSCRIPTEN) || (defined(__wasi__) && defined(CONFIG_TCG_INTERPRETER))
+ 
+ static inline void flush_idcache_range(uintptr_t rx, uintptr_t rw, size_t len)
+ {
+--- a/include/qemu/xattr.h
++++ b/include/qemu/xattr.h
+@@ -25,7 +25,11 @@
+ #  if !defined(ENOATTR)
+ #    define ENOATTR ENODATA
+ #  endif
+-#  ifndef CONFIG_WIN32
++#  if defined(__wasi__)
++#define XATTR_CREATE 1
++#define XATTR_REPLACE 2
++ssize_t fgetxattr(int fd, const char *name, void *value, size_t size);
++#  elif !defined(CONFIG_WIN32)
+ #    include <sys/xattr.h>
+ #  endif
+ #endif
+--- a/io/channel-socket.c
++++ b/io/channel-socket.c
+@@ -113,7 +113,7 @@
+         goto error;
+     }
+ 
+-#ifndef WIN32
++#if !defined(WIN32) && !defined(__wasi__)
+     if (sioc->localAddr.ss_family == AF_UNIX) {
+         QIOChannel *ioc = QIO_CHANNEL(sioc);
+         qio_channel_set_feature(ioc, QIO_CHANNEL_FEATURE_FD_PASS);
+@@ -403,7 +403,7 @@
+         goto error;
+     }
+ 
+-#ifndef WIN32
++#if !defined(WIN32) && !defined(__wasi__)
+     if (cioc->localAddr.ss_family == AF_UNIX) {
+         QIOChannel *ioc_local = QIO_CHANNEL(cioc);
+         qio_channel_set_feature(ioc_local, QIO_CHANNEL_FEATURE_FD_PASS);
+@@ -451,7 +451,7 @@
+ }
+ 
+ 
+-#ifndef WIN32
++#if !defined(WIN32) && !defined(__wasi__)
+ static void qio_channel_socket_copy_fds(struct msghdr *msg,
+                                         int **fds, size_t *nfds)
+ {
+--- a/meson.build
++++ b/meson.build
+@@ -317,7 +317,7 @@
+ # On Windows the only valid backend is the Windows specific one.
+ # For POSIX prefer ucontext, but it's not always possible. The fallback
+ # is sigcontext.
+-supported_backends = ['fiber']
++supported_backends = targetos == 'wasi' ? ['wasix'] : ['fiber']
+ if targetos == 'windows'
+   supported_backends += ['windows']
+ else
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -32,7 +32,7 @@
+ option('trace_file', type: 'string', value: 'trace',
+        description: 'Trace file prefix for simple backend')
+ option('coroutine_backend', type: 'combo',
+-       choices: ['ucontext', 'sigaltstack', 'windows', 'auto', 'fiber'],
++       choices: ['ucontext', 'sigaltstack', 'windows', 'auto', 'fiber', 'wasix'],
+        value: 'auto', description: 'coroutine backend to use')
+ 
+ # Everything else can be set via --enable/--disable-* option
+--- a/net/tap.c
++++ b/net/tap.c
+@@ -444,6 +444,14 @@
+     return s;
+ }
+ 
++#ifdef __wasi__
++static void launch_script(const char *setup_script, const char *ifname,
++                          int fd, Error **errp)
++{ error_setg(errp, "WASIX host network scripts are unsupported"); }
++static int net_bridge_run_helper(const char *helper, const char *bridge,
++                                 Error **errp)
++{ error_setg(errp, "WASIX host network bridges are unsupported"); return -1; }
++#else
+ static void launch_script(const char *setup_script, const char *ifname,
+                           int fd, Error **errp)
+ {
+@@ -625,6 +633,8 @@
+         return fd;
+     }
+ }
++
++#endif
+ 
+ int net_init_bridge(const Netdev *netdev, const char *name,
+                     NetClientState *peer, Error **errp)
+--- a/os-posix.c
++++ b/os-posix.c
+@@ -183,10 +183,15 @@
+ static void change_root(void)
+ {
+     if (chroot_dir) {
++#ifdef __wasi__
++        error_report("WASIX host chroot is unsupported; use runtime preopens");
++        exit(1);
++#else
+         if (chroot(chroot_dir) < 0) {
+             error_report("chroot failed");
+             exit(1);
+         }
++#endif
+         if (chdir("/")) {
+             error_report("not able to chdir to /: %s", strerror(errno));
+             exit(1);
+@@ -213,6 +218,10 @@
+ void os_daemonize(void)
+ {
+     if (daemonize) {
++#ifdef __wasi__
++        error_report("WASIX host daemonization is unsupported");
++        exit(1);
++#else
+         pid_t pid;
+         int fds[2];
+ 
+@@ -255,6 +264,7 @@
+         signal(SIGTSTP, SIG_IGN);
+         signal(SIGTTOU, SIG_IGN);
+         signal(SIGTTIN, SIG_IGN);
++#endif
+     }
+ }
+ 
+--- a/target/i386/tcg/translate.c
++++ b/target/i386/tcg/translate.c
+@@ -17,6 +17,13 @@
+  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
+  */
+ #include "qemu/osdep.h"
++/* These jump sites do not save the host signal mask. WASIX EH requires
++ * setjmp for compiler lowering; sigsetjmp is not lowered by wasixcc 0.4.7. */
++#ifdef __wasi__
++#define QEMU_CPU_SETJMP(env) setjmp(env)
++#else
++#define QEMU_CPU_SETJMP(env) sigsetjmp(env, 0)
++#endif
+ 
+ #include "qemu/host-utils.h"
+ #include "cpu.h"
+@@ -3083,7 +3090,7 @@
+     s->vex_l = 0;
+     s->vex_v = 0;
+     s->vex_w = false;
+-    switch (sigsetjmp(s->jmpbuf, 0)) {
++    switch (QEMU_CPU_SETJMP(s->jmpbuf)) {
+     case 0:
+         break;
+     case 1:
+--- a/tcg/region.c
++++ b/tcg/region.c
+@@ -710,7 +710,12 @@
+      * guard pages later.  We can go the other way with the same number
+      * of syscalls, so always begin with PROT_NONE.
+      */
++#if defined(__wasi__) && defined(CONFIG_TCG_INTERPRETER)
++    /* TCI stores bytecode as ordinary data; WASIX has no PROT_NONE mapping. */
++    prot = PROT_READ | PROT_WRITE;
++#else
+     prot = PROT_NONE;
++#endif
+     flags = MAP_PRIVATE | MAP_ANONYMOUS;
+ #ifdef CONFIG_DARWIN
+     /* Applicable to both iOS and macOS (Apple Silicon). */
+--- a/util/cacheflush.c
++++ b/util/cacheflush.c
+@@ -225,7 +225,7 @@
+  * Architecture (+ OS) specific cache flushing mechanisms.
+  */
+ 
+-#if defined(__i386__) || defined(__x86_64__) || defined(__s390__) || defined(EMSCRIPTEN)
++#if defined(__i386__) || defined(__x86_64__) || defined(__s390__) || defined(EMSCRIPTEN) || (defined(__wasi__) && defined(CONFIG_TCG_INTERPRETER))
+ 
+ /* Caches are coherent and do not require flushing; symbol inline. */
+ 
+--- a/util/osdep.c
++++ b/util/osdep.c
+@@ -69,7 +69,13 @@
+     g_assert(!((uintptr_t)addr & ~qemu_real_host_page_mask()));
+     g_assert(!(size & ~qemu_real_host_page_mask()));
+ 
+-#ifdef _WIN32
++#if defined(__wasi__)
++    /* Linear-memory data is already RW. WASIX cannot install guard pages or
++     * execute data; TCI never requires executable translation buffers. */
++    if (prot == (PROT_READ | PROT_WRITE)) { return 0; }
++    errno = ENOTSUP;
++    return -1;
++#elif defined(_WIN32)
+     DWORD old_protect;
+ 
+     if (!VirtualProtect(addr, size, prot, &old_protect)) {
+@@ -186,6 +192,16 @@
+     return qemu_parse_fd(param);
+ }
+ 
++#if defined(__wasi__)
++/* WASIX does not expose POSIX byte-range locks. Never claim a lock succeeded. */
++bool qemu_has_ofd_lock(void) { return false; }
++int qemu_lock_fd(int fd, int64_t start, int64_t len, bool exclusive)
++{ return -ENOTSUP; }
++int qemu_unlock_fd(int fd, int64_t start, int64_t len)
++{ return -ENOTSUP; }
++int qemu_lock_fd_test(int fd, int64_t start, int64_t len, bool exclusive)
++{ return -ENOTSUP; }
++#else
+ static void qemu_probe_lock_ops(void)
+ {
+     if (fcntl_op_setlk == -1) {
+@@ -275,6 +291,7 @@
+         return fl.l_type == F_UNLCK ? 0 : -EAGAIN;
+     }
+ }
++#endif /* __wasi__ */
+ #endif
+ 
+ static int qemu_open_cloexec(const char *name, int flags, mode_t mode)
+--- a/util/oslib-posix.c
++++ b/util/oslib-posix.c
+@@ -108,11 +108,20 @@
+ 
+ int qemu_daemon(int nochdir, int noclose)
+ {
++#ifdef __wasi__
++    errno = ENOTSUP;
++    return -1;
++#else
+     return daemon(nochdir, noclose);
++#endif
+ }
+ 
+ bool qemu_write_pidfile(const char *path, Error **errp)
+ {
++#ifdef __wasi__
++    error_setg(errp, "WASIX does not support locked host pidfiles");
++    return false;
++#else
+     int fd;
+     char pidstr[32];
+ 
+@@ -181,12 +190,26 @@
+ fail_close:
+     close(fd);
+     return false;
++#endif
+ }
+ 
+ /* alloc shared memory pages */
+ void *qemu_anon_ram_alloc(size_t size, uint64_t *alignment, bool shared,
+                           bool noreserve)
+ {
++#ifdef __wasi__
++    /* Guest RAM is data inside this instance's shared linear memory. It is
++     * visible to its threads, but not a shared host-process/file mapping. */
++    void *ptr = NULL;
++    size_t align = QEMU_VMALLOC_ALIGN;
++    if (shared || noreserve) { errno = ENOTSUP; return NULL; }
++    int ret = posix_memalign(&ptr, align, size);
++    if (ret) { errno = ret; return NULL; }
++    memset(ptr, 0, size);
++    if (alignment) { *alignment = align; }
++    trace_qemu_anon_ram_alloc(size, ptr);
++    return ptr;
++#else
+     const uint32_t qemu_map_flags = (shared ? QEMU_MAP_SHARED : 0) |
+                                     (noreserve ? QEMU_MAP_NORESERVE : 0);
+     size_t align = QEMU_VMALLOC_ALIGN;
+@@ -202,12 +225,17 @@
+ 
+     trace_qemu_anon_ram_alloc(size, ptr);
+     return ptr;
++#endif
+ }
+ 
+ void qemu_anon_ram_free(void *ptr, size_t size)
+ {
+     trace_qemu_anon_ram_free(ptr, size);
++#ifdef __wasi__
++    free(ptr);
++#else
+     qemu_ram_munmap(-1, ptr, size);
++#endif
+ }
+ 
+ void qemu_socket_set_block(int fd)
+--- /dev/null
++++ b/include/qemu/statfs-wasix.h
+@@ -0,0 +1,25 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++#ifndef QEMU_STATFS_WASIX_H
++#define QEMU_STATFS_WASIX_H
++#include <sys/statvfs.h>
++/* WASIX reports statvfs, not Linux statfs. A zero type means unspecified. */
++struct statfs {
++    unsigned long f_type, f_bsize, f_namelen;
++    uint64_t f_blocks, f_bfree, f_bavail, f_files, f_ffree;
++    struct { unsigned int __val[2]; } f_fsid;
++};
++static inline int fstatfs(int fd, struct statfs *out)
++{
++    struct statvfs in;
++    int ret = fstatvfs(fd, &in);
++    if (ret < 0) { return ret; }
++    memset(out, 0, sizeof(*out));
++    out->f_bsize = in.f_frsize ? in.f_frsize : in.f_bsize;
++    if (!out->f_bsize) { errno = EIO; return -1; }
++    out->f_blocks = in.f_blocks; out->f_bfree = in.f_bfree;
++    out->f_bavail = in.f_bavail; out->f_files = in.f_files;
++    out->f_ffree = in.f_ffree; out->f_namelen = in.f_namemax;
++    out->f_fsid.__val[0] = in.f_fsid;
++    return 0;
++}
++#endif
+--- /dev/null
++++ b/hw/9pfs/9p-errno-wasix.inc
+@@ -0,0 +1,396 @@
++/* WASIX errno values are not Linux errno values. Generated from QEMU generic target_errno_defs.h. */
++if (err == 0) { return 0; }
++#ifdef EPERM
++if (err == EPERM) { return 1; }
++#endif
++#ifdef ENOENT
++if (err == ENOENT) { return 2; }
++#endif
++#ifdef ESRCH
++if (err == ESRCH) { return 3; }
++#endif
++#ifdef EINTR
++if (err == EINTR) { return 4; }
++#endif
++#ifdef EIO
++if (err == EIO) { return 5; }
++#endif
++#ifdef ENXIO
++if (err == ENXIO) { return 6; }
++#endif
++#ifdef E2BIG
++if (err == E2BIG) { return 7; }
++#endif
++#ifdef ENOEXEC
++if (err == ENOEXEC) { return 8; }
++#endif
++#ifdef EBADF
++if (err == EBADF) { return 9; }
++#endif
++#ifdef ECHILD
++if (err == ECHILD) { return 10; }
++#endif
++#ifdef EAGAIN
++if (err == EAGAIN) { return 11; }
++#endif
++#ifdef ENOMEM
++if (err == ENOMEM) { return 12; }
++#endif
++#ifdef EACCES
++if (err == EACCES) { return 13; }
++#endif
++#ifdef EFAULT
++if (err == EFAULT) { return 14; }
++#endif
++#ifdef ENOTBLK
++if (err == ENOTBLK) { return 15; }
++#endif
++#ifdef EBUSY
++if (err == EBUSY) { return 16; }
++#endif
++#ifdef EEXIST
++if (err == EEXIST) { return 17; }
++#endif
++#ifdef EXDEV
++if (err == EXDEV) { return 18; }
++#endif
++#ifdef ENODEV
++if (err == ENODEV) { return 19; }
++#endif
++#ifdef ENOTDIR
++if (err == ENOTDIR) { return 20; }
++#endif
++#ifdef EISDIR
++if (err == EISDIR) { return 21; }
++#endif
++#ifdef EINVAL
++if (err == EINVAL) { return 22; }
++#endif
++#ifdef ENFILE
++if (err == ENFILE) { return 23; }
++#endif
++#ifdef EMFILE
++if (err == EMFILE) { return 24; }
++#endif
++#ifdef ENOTTY
++if (err == ENOTTY) { return 25; }
++#endif
++#ifdef ETXTBSY
++if (err == ETXTBSY) { return 26; }
++#endif
++#ifdef EFBIG
++if (err == EFBIG) { return 27; }
++#endif
++#ifdef ENOSPC
++if (err == ENOSPC) { return 28; }
++#endif
++#ifdef ESPIPE
++if (err == ESPIPE) { return 29; }
++#endif
++#ifdef EROFS
++if (err == EROFS) { return 30; }
++#endif
++#ifdef EMLINK
++if (err == EMLINK) { return 31; }
++#endif
++#ifdef EPIPE
++if (err == EPIPE) { return 32; }
++#endif
++#ifdef EDOM
++if (err == EDOM) { return 33; }
++#endif
++#ifdef ERANGE
++if (err == ERANGE) { return 34; }
++#endif
++#ifdef EDEADLK
++if (err == EDEADLK) { return 35; }
++#endif
++#ifdef ENAMETOOLONG
++if (err == ENAMETOOLONG) { return 36; }
++#endif
++#ifdef ENOLCK
++if (err == ENOLCK) { return 37; }
++#endif
++#ifdef ENOSYS
++if (err == ENOSYS) { return 38; }
++#endif
++#ifdef ENOTEMPTY
++if (err == ENOTEMPTY) { return 39; }
++#endif
++#ifdef ELOOP
++if (err == ELOOP) { return 40; }
++#endif
++#ifdef ENOMSG
++if (err == ENOMSG) { return 42; }
++#endif
++#ifdef EIDRM
++if (err == EIDRM) { return 43; }
++#endif
++#ifdef ECHRNG
++if (err == ECHRNG) { return 44; }
++#endif
++#ifdef EL2NSYNC
++if (err == EL2NSYNC) { return 45; }
++#endif
++#ifdef EL3HLT
++if (err == EL3HLT) { return 46; }
++#endif
++#ifdef EL3RST
++if (err == EL3RST) { return 47; }
++#endif
++#ifdef ELNRNG
++if (err == ELNRNG) { return 48; }
++#endif
++#ifdef EUNATCH
++if (err == EUNATCH) { return 49; }
++#endif
++#ifdef ENOCSI
++if (err == ENOCSI) { return 50; }
++#endif
++#ifdef EL2HLT
++if (err == EL2HLT) { return 51; }
++#endif
++#ifdef EBADE
++if (err == EBADE) { return 52; }
++#endif
++#ifdef EBADR
++if (err == EBADR) { return 53; }
++#endif
++#ifdef EXFULL
++if (err == EXFULL) { return 54; }
++#endif
++#ifdef ENOANO
++if (err == ENOANO) { return 55; }
++#endif
++#ifdef EBADRQC
++if (err == EBADRQC) { return 56; }
++#endif
++#ifdef EBADSLT
++if (err == EBADSLT) { return 57; }
++#endif
++#ifdef EBFONT
++if (err == EBFONT) { return 59; }
++#endif
++#ifdef ENOSTR
++if (err == ENOSTR) { return 60; }
++#endif
++#ifdef ENODATA
++if (err == ENODATA) { return 61; }
++#endif
++#ifdef ETIME
++if (err == ETIME) { return 62; }
++#endif
++#ifdef ENOSR
++if (err == ENOSR) { return 63; }
++#endif
++#ifdef ENONET
++if (err == ENONET) { return 64; }
++#endif
++#ifdef ENOPKG
++if (err == ENOPKG) { return 65; }
++#endif
++#ifdef EREMOTE
++if (err == EREMOTE) { return 66; }
++#endif
++#ifdef ENOLINK
++if (err == ENOLINK) { return 67; }
++#endif
++#ifdef EADV
++if (err == EADV) { return 68; }
++#endif
++#ifdef ESRMNT
++if (err == ESRMNT) { return 69; }
++#endif
++#ifdef ECOMM
++if (err == ECOMM) { return 70; }
++#endif
++#ifdef EPROTO
++if (err == EPROTO) { return 71; }
++#endif
++#ifdef EMULTIHOP
++if (err == EMULTIHOP) { return 72; }
++#endif
++#ifdef EDOTDOT
++if (err == EDOTDOT) { return 73; }
++#endif
++#ifdef EBADMSG
++if (err == EBADMSG) { return 74; }
++#endif
++#ifdef EOVERFLOW
++if (err == EOVERFLOW) { return 75; }
++#endif
++#ifdef ENOTUNIQ
++if (err == ENOTUNIQ) { return 76; }
++#endif
++#ifdef EBADFD
++if (err == EBADFD) { return 77; }
++#endif
++#ifdef EREMCHG
++if (err == EREMCHG) { return 78; }
++#endif
++#ifdef ELIBACC
++if (err == ELIBACC) { return 79; }
++#endif
++#ifdef ELIBBAD
++if (err == ELIBBAD) { return 80; }
++#endif
++#ifdef ELIBSCN
++if (err == ELIBSCN) { return 81; }
++#endif
++#ifdef ELIBMAX
++if (err == ELIBMAX) { return 82; }
++#endif
++#ifdef ELIBEXEC
++if (err == ELIBEXEC) { return 83; }
++#endif
++#ifdef EILSEQ
++if (err == EILSEQ) { return 84; }
++#endif
++#ifdef ERESTART
++if (err == ERESTART) { return 85; }
++#endif
++#ifdef ESTRPIPE
++if (err == ESTRPIPE) { return 86; }
++#endif
++#ifdef EUSERS
++if (err == EUSERS) { return 87; }
++#endif
++#ifdef ENOTSOCK
++if (err == ENOTSOCK) { return 88; }
++#endif
++#ifdef EDESTADDRREQ
++if (err == EDESTADDRREQ) { return 89; }
++#endif
++#ifdef EMSGSIZE
++if (err == EMSGSIZE) { return 90; }
++#endif
++#ifdef EPROTOTYPE
++if (err == EPROTOTYPE) { return 91; }
++#endif
++#ifdef ENOPROTOOPT
++if (err == ENOPROTOOPT) { return 92; }
++#endif
++#ifdef EPROTONOSUPPORT
++if (err == EPROTONOSUPPORT) { return 93; }
++#endif
++#ifdef ESOCKTNOSUPPORT
++if (err == ESOCKTNOSUPPORT) { return 94; }
++#endif
++#ifdef EOPNOTSUPP
++if (err == EOPNOTSUPP) { return 95; }
++#endif
++#ifdef EPFNOSUPPORT
++if (err == EPFNOSUPPORT) { return 96; }
++#endif
++#ifdef EAFNOSUPPORT
++if (err == EAFNOSUPPORT) { return 97; }
++#endif
++#ifdef EADDRINUSE
++if (err == EADDRINUSE) { return 98; }
++#endif
++#ifdef EADDRNOTAVAIL
++if (err == EADDRNOTAVAIL) { return 99; }
++#endif
++#ifdef ENETDOWN
++if (err == ENETDOWN) { return 100; }
++#endif
++#ifdef ENETUNREACH
++if (err == ENETUNREACH) { return 101; }
++#endif
++#ifdef ENETRESET
++if (err == ENETRESET) { return 102; }
++#endif
++#ifdef ECONNABORTED
++if (err == ECONNABORTED) { return 103; }
++#endif
++#ifdef ECONNRESET
++if (err == ECONNRESET) { return 104; }
++#endif
++#ifdef ENOBUFS
++if (err == ENOBUFS) { return 105; }
++#endif
++#ifdef EISCONN
++if (err == EISCONN) { return 106; }
++#endif
++#ifdef ENOTCONN
++if (err == ENOTCONN) { return 107; }
++#endif
++#ifdef ESHUTDOWN
++if (err == ESHUTDOWN) { return 108; }
++#endif
++#ifdef ETOOMANYREFS
++if (err == ETOOMANYREFS) { return 109; }
++#endif
++#ifdef ETIMEDOUT
++if (err == ETIMEDOUT) { return 110; }
++#endif
++#ifdef ECONNREFUSED
++if (err == ECONNREFUSED) { return 111; }
++#endif
++#ifdef EHOSTDOWN
++if (err == EHOSTDOWN) { return 112; }
++#endif
++#ifdef EHOSTUNREACH
++if (err == EHOSTUNREACH) { return 113; }
++#endif
++#ifdef EALREADY
++if (err == EALREADY) { return 114; }
++#endif
++#ifdef EINPROGRESS
++if (err == EINPROGRESS) { return 115; }
++#endif
++#ifdef ESTALE
++if (err == ESTALE) { return 116; }
++#endif
++#ifdef EUCLEAN
++if (err == EUCLEAN) { return 117; }
++#endif
++#ifdef ENOTNAM
++if (err == ENOTNAM) { return 118; }
++#endif
++#ifdef ENAVAIL
++if (err == ENAVAIL) { return 119; }
++#endif
++#ifdef EISNAM
++if (err == EISNAM) { return 120; }
++#endif
++#ifdef EREMOTEIO
++if (err == EREMOTEIO) { return 121; }
++#endif
++#ifdef EDQUOT
++if (err == EDQUOT) { return 122; }
++#endif
++#ifdef ENOMEDIUM
++if (err == ENOMEDIUM) { return 123; }
++#endif
++#ifdef EMEDIUMTYPE
++if (err == EMEDIUMTYPE) { return 124; }
++#endif
++#ifdef ECANCELED
++if (err == ECANCELED) { return 125; }
++#endif
++#ifdef ENOKEY
++if (err == ENOKEY) { return 126; }
++#endif
++#ifdef EKEYEXPIRED
++if (err == EKEYEXPIRED) { return 127; }
++#endif
++#ifdef EKEYREVOKED
++if (err == EKEYREVOKED) { return 128; }
++#endif
++#ifdef EKEYREJECTED
++if (err == EKEYREJECTED) { return 129; }
++#endif
++#ifdef EOWNERDEAD
++if (err == EOWNERDEAD) { return 130; }
++#endif
++#ifdef ENOTRECOVERABLE
++if (err == ENOTRECOVERABLE) { return 131; }
++#endif
++#ifdef ERFKILL
++if (err == ERFKILL) { return 132; }
++#endif
++#ifdef EHWPOISON
++if (err == EHWPOISON) { return 133; }
++#endif
++return 5; /* Unknown host error: Linux EIO, never forward an unrelated errno. */
+--- a/hw/9pfs/coth.h
++++ b/hw/9pfs/coth.h
+@@ -19,7 +19,7 @@
+ #include "qemu/coroutine-core.h"
+ #include "9p.h"
+ 
+-#ifndef EMSCRIPTEN
++#if !defined(EMSCRIPTEN) && !defined(__wasi__)
+ /*
+  * we want to use bottom half because we want to make sure the below
+  * sequence of events.
+@@ -59,6 +59,8 @@
+         qemu_coroutine_yield();                                         \
+     } while (0)
+ #else
++/* WASIX contexts are thread-affine. Local I/O is synchronous here; the
++ * external supervisor must remain responsible for deadlines/cancellation. */
+ #define v9fs_co_run_in_worker(code_block)                               \
+     do {                                                                \
+         code_block;                                                     \
