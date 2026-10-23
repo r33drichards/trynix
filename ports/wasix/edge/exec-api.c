@@ -20,7 +20,7 @@
 
 extern char **environ;
 
-#define INPUT_MAX 65536
+#define INPUT_MAX 8192
 #define OUTPUT_MAX 131072
 #define HEADER_MAX 8192
 #define REQUEST_MAX (2 * INPUT_MAX + HEADER_MAX)
@@ -28,6 +28,7 @@ extern char **environ;
 #define TRANSPORT_MAX 262144
 #define BOOT_SECONDS 180
 #define EXEC_SECONDS 30
+#define STAGE_SECONDS 60
 #define IO_SECONDS 10
 #define REAP_SECONDS 10
 
@@ -41,7 +42,7 @@ enum job_state {
     JOB_FAILED = 6
 };
 
-/* Development-only loopback API. Public authentication/ownership is absent.
+/* Loopback development API; opt-in public mode exposes synchronous /execute only.
  * Only one worker owns a job. A terminal state is published after cleanup;
  * unconfirmed reaping permanently quarantines this instance from new jobs.
  */
@@ -59,6 +60,12 @@ static pthread_cond_t changed = PTHREAD_COND_INITIALIZER;
 static char **childargs;
 static int listener = -1;
 static int shutdown_requested, active;
+static int public_poc, response_pending;
+static unsigned accepted_jobs;
+static double next_admission;
+static uint64_t public_expires_at;
+#define PUBLIC_JOB_LIMIT 3
+#define PUBLIC_ADMISSION_SECONDS 10
 
 static double now(void)
 {
@@ -71,10 +78,21 @@ static double now(void)
     return t.tv_sec + t.tv_nsec / 1e9;
 }
 
+/* Wall-clock expiry is shared configuration across all fresh instances.
+ * Missing/broken clock fails closed. This is exposure duration, not a cost cap.
+ */
+static int public_expired(void)
+{
+    if (!public_poc) return 0;
+    struct timespec t;
+    return clock_gettime(CLOCK_REALTIME, &t) || t.tv_sec < 0 ||
+        (uint64_t)t.tv_sec >= public_expires_at;
+}
+
 static int cancelled(void)
 {
     pthread_mutex_lock(&lock);
-    int result = j.cancel || shutdown_requested;
+    int result = j.cancel || shutdown_requested || public_expired();
     pthread_mutex_unlock(&lock);
     return result;
 }
@@ -288,6 +306,7 @@ static char *guest_command(void)
         "mkdir -p /work && chown 65534:65534 /work && chmod 700 /work && "
         "chmod 600 /dev/tty /dev/console /dev/ttyS0 && umask 077 && "
         ": > /tmp/request.output && chmod 600 /tmp/request.output; then "
+        "printf 'EXEC_RUNNING_%%s\\n' 'MARK'; "
         "(ulimit -f 256 || exit 125; "
         "exec setsid su -s /bin/sh nobody -c 'cd /work && exec lua /tmp/request.lua') "
         "< /tmp/request.stdin > /tmp/request.output 2>&1; code=$?; "
@@ -312,7 +331,7 @@ static void run_job(void)
     int in[2] = {-1, -1}, out[2] = {-1, -1};
     pid_t pid = -1;
     int status = 0, child_reaped = 1;
-    int ready = 0, prepared = 0, submitted = 0, done = 0;
+    int ready = 0, prepared = 0, submitted = 0, executing = 0, done = 0;
     int terminal = JOB_FAILED, exit_code = -1;
     const char *error = NULL;
     char *buf = calloc(1, TRANSPORT_MAX + 1);
@@ -322,6 +341,10 @@ static void run_job(void)
     posix_spawn_file_actions_t actions;
     int actions_initialized = 0, rc;
 
+    if (cancelled()) {
+        terminal = JOB_CANCELLED;
+        goto cleanup;
+    }
     if (!buf || !output || pipe(in) || pipe(out)) {
         error = "pipe/allocation failed";
         goto cleanup;
@@ -377,7 +400,7 @@ static void run_job(void)
         }
         if (now() >= deadline) {
             terminal = JOB_TIMEOUT;
-            error = submitted ? "execution timeout" : "boot timeout";
+            error = executing ? "execution timeout" : (submitted ? "input staging timeout" : "boot timeout");
             break;
         }
         if (used == TRANSPORT_MAX) {
@@ -449,6 +472,10 @@ static void run_job(void)
             used = 0;
             buf[0] = 0;
             submitted = 1;
+            deadline = now() + STAGE_SECONDS;
+        }
+        if (submitted && !executing && complete_line(buf, "EXEC_RUNNING_MARK")) {
+            executing = 1;
             deadline = now() + EXEC_SECONDS;
             pthread_mutex_lock(&lock);
             j.state = JOB_RUNNING;
@@ -538,6 +565,62 @@ static void reply(int c, int code, const char *body)
     if (!write_until(c, header, (size_t)n, deadline, 0)) {
         write_until(c, body, strlen(body), deadline, 0);
     }
+}
+
+/* Public mode exposes only synchronous execution: results never depend on
+ * routing a subsequent request to this process. The response owns its socket
+ * and prevents job replacement until output is copied and delivered/discarded.
+ * Admission counters are process-local, NOT an account-wide spending limit.
+ */
+static void *synchronous_response(void *opaque)
+{
+    int c = *(int *)opaque;
+    free(opaque);
+    int disconnected = 0;
+    double deadline = now() + BOOT_SECONDS + STAGE_SECONDS + EXEC_SECONDS + 2 * IO_SECONDS + REAP_SECONDS;
+    for (;;) {
+        pthread_mutex_lock(&lock);
+        int terminal = j.state >= JOB_COMPLETE;
+        int stop = shutdown_requested;
+        pthread_mutex_unlock(&lock);
+        if (terminal) break;
+        struct pollfd p = { .fd = c, .events = POLLIN };
+        int r = poll(&p, 1, 50);
+        if (r < 0 && errno == EINTR) continue;
+        if (stop || now() >= deadline || r < 0 ||
+            (p.revents & (POLLHUP | POLLERR | POLLNVAL | POLLIN))) {
+            /* No further request bytes are valid after Content-Length.
+             * POLLIN also reports peer EOF. Either cancels this request.
+             */
+            disconnected = 1;
+            pthread_mutex_lock(&lock);
+            j.cancel = 1;
+            pthread_mutex_unlock(&lock);
+            break;
+        }
+    }
+    if (!disconnected) {
+        pthread_mutex_lock(&lock);
+        char *encoded = b64(j.output, j.output_n);
+        size_t cap = encoded ? strlen(encoded) + 400 : 0;
+        char *body = encoded ? malloc(cap) : NULL;
+        if (body) snprintf(body, cap,
+            "{\"state\":%d,\"exit_code\":%d,\"reaped\":%s,"
+            "\"error\":\"%s\",\"output_base64\":\"%s\"}",
+            j.state, j.exit_code, j.reaped ? "true" : "false", j.error, encoded);
+        int code = j.state == JOB_TIMEOUT ? 504 : (j.state == JOB_FAILED ? 502 : 200);
+        pthread_mutex_unlock(&lock);
+        if (body) reply(c, code, body);
+        else reply(c, 500, "{\"error\":\"allocation failed\"}");
+        free(body);
+        free(encoded);
+    }
+    close(c);
+    pthread_mutex_lock(&lock);
+    response_pending = 0;
+    pthread_cond_broadcast(&changed);
+    pthread_mutex_unlock(&lock);
+    return NULL;
 }
 
 struct request {
@@ -647,12 +730,12 @@ static int receive_more(int c, char *buf, size_t *n, size_t cap, double deadline
     return -1;
 }
 
-static void handle(int c)
+static int handle(int c)
 {
     char *buf = calloc(1, REQUEST_MAX + 1);
     if (!buf) {
         reply(c, 500, "{\"error\":\"allocation failed\"}");
-        return;
+        return 0;
     }
     size_t n = 0, header_n = 0;
     double deadline = now() + 3;
@@ -669,7 +752,13 @@ static void handle(int c)
         reply(c, 400, "{\"error\":\"bad headers\"}");
         goto finish;
     }
-    int run = !strcmp(r.method, "POST") && !strcmp(r.path, "/run");
+    int synchronous = !strcmp(r.method, "POST") && !strcmp(r.path, "/execute");
+    int run = synchronous || (!public_poc && !strcmp(r.method, "POST") && !strcmp(r.path, "/run"));
+    if (synchronous && r.have_content && !r.have_source) {
+        /* Plain curl --data-binary source.lua: absent stdin split means all source. */
+        r.source = r.content;
+        r.have_source = 1;
+    }
     if (run && (!r.have_content || !r.have_source)) {
         reply(c, 400, "{\"error\":\"length headers required\"}");
         goto finish;
@@ -692,14 +781,25 @@ static void handle(int c)
         goto finish;
     }
     if (!strcmp(r.method, "GET") && !strcmp(r.path, "/health")) {
-        reply(c, 200, "{\"status\":\"local-only\"}");
+        reply(c, 200, public_poc ? "{\"status\":\"experimental-public-poc\"}" : "{\"status\":\"local-only\"}");
+        goto finish;
+    }
+    if (run && public_expired()) {
+        reply(c, 410, "{\"error\":\"POC expired\"}");
         goto finish;
     }
     if (run) {
         pthread_mutex_lock(&lock);
-        if (active || j.id == UINT_MAX) {
+        if (active || response_pending || j.id == UINT_MAX ||
+            (public_poc && (accepted_jobs >= PUBLIC_JOB_LIMIT || now() < next_admission))) {
             pthread_mutex_unlock(&lock);
             reply(c, 429, "{\"error\":\"busy\"}");
+            goto finish;
+        }
+        int *owned_socket = synchronous ? malloc(sizeof *owned_socket) : NULL;
+        if (synchronous && !owned_socket) {
+            pthread_mutex_unlock(&lock);
+            reply(c, 500, "{\"error\":\"allocation failed\"}");
             goto finish;
         }
         unsigned id = j.id + 1;
@@ -712,13 +812,31 @@ static void handle(int c)
         memcpy(j.source, buf + header_n, j.source_n);
         memcpy(j.input, buf + header_n + r.source, j.stdin_n);
         active = 1;
+        ++accepted_jobs;
+        next_admission = now() + PUBLIC_ADMISSION_SECONDS;
+        response_pending = synchronous;
+        if (synchronous) {
+            *owned_socket = c;
+            pthread_t responder;
+            if (pthread_create(&responder, NULL, synchronous_response, owned_socket)) {
+                free(owned_socket);
+                active = response_pending = 0;
+                j.state = JOB_FAILED;
+                pthread_mutex_unlock(&lock);
+                reply(c, 500, "{\"error\":\"response thread failed\"}");
+                goto finish;
+            }
+            pthread_detach(responder);
+        }
         pthread_cond_signal(&changed);
         pthread_mutex_unlock(&lock);
+        if (synchronous) { free(buf); return 1; }
         char body[80];
         snprintf(body, sizeof body, "{\"id\":%u}", id);
         reply(c, 202, body);
         goto finish;
     }
+    if (public_poc) { reply(c, 404, "{}"); goto finish; }
     unsigned id = 0;
     int cancel = !strcmp(r.method, "POST");
     if ((!cancel && strcmp(r.method, "GET")) || job_route(r.path, cancel, &id)) {
@@ -749,19 +867,37 @@ static void handle(int c)
     free(encoded);
 finish:
     free(buf);
+    return 0;
 }
 
 int main(int argc, char **argv)
 {
     if (argc < 2) return 2;
     childargs = argv + 1;
+    const char *mode = getenv("PUBLIC_POC");
+    public_poc = mode && !strcmp(mode, "1");
+    if (public_poc) {
+        const char *expiry = getenv("POC_EXPIRES_AT");
+        size_t value;
+        struct timespec t;
+        if (!expiry || decimal_size(expiry, &value) || !value ||
+            clock_gettime(CLOCK_REALTIME, &t) || t.tv_sec < 0 ||
+            (uint64_t)value > (uint64_t)t.tv_sec + 3600) {
+            fprintf(stderr, "PUBLIC_POC requires POC_EXPIRES_AT within the next hour\n");
+            return 2;
+        }
+        public_expires_at = value;
+    }
+    const char *port_text = getenv("PORT");
+    size_t port = public_poc ? 80 : 18081;
+    if (port_text && (decimal_size(port_text, &port) || port == 0 || port > 65535)) return 2;
     if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) return 3;
     listener = socket(AF_INET, SOCK_STREAM, 0);
     int yes = 1;
     struct sockaddr_in addr = {
         .sin_family = AF_INET,
-        .sin_port = htons(18081),
-        .sin_addr.s_addr = htonl(INADDR_LOOPBACK)
+        .sin_port = htons((uint16_t)port),
+        .sin_addr.s_addr = htonl(public_poc ? INADDR_ANY : INADDR_LOOPBACK)
     };
     if (listener < 0 || fd_flags(listener, 1) ||
         setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes) ||
@@ -775,7 +911,7 @@ int main(int argc, char **argv)
         close(listener);
         return 4;
     }
-    fprintf(stderr, "local-only Lua API ready18081\n");
+    fprintf(stderr, "Lua API ready port=%zu mode=%s\n", port, public_poc ? "public-poc" : "local");
     double deadline = now() + 600;
     while (now() < deadline) {
         struct pollfd p = { .fd = listener, .events = POLLIN };
@@ -788,8 +924,8 @@ int main(int argc, char **argv)
             if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) continue;
             break;
         }
-        if (!fd_flags(c, 1)) handle(c);
-        close(c);
+        int transferred = !fd_flags(c, 1) && handle(c);
+        if (!transferred) close(c);
     }
     pthread_mutex_lock(&lock);
     shutdown_requested = 1;
@@ -797,6 +933,9 @@ int main(int argc, char **argv)
     pthread_cond_signal(&changed);
     pthread_mutex_unlock(&lock);
     pthread_join(thread, NULL);
+    pthread_mutex_lock(&lock);
+    while (response_pending) pthread_cond_wait(&changed, &lock);
+    pthread_mutex_unlock(&lock);
     close(listener);
     return 0;
 }

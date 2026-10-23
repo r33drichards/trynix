@@ -9,7 +9,15 @@ int main(void) {
   if (!fgets(line,sizeof line,stdin)) return 3;
   puts("INPUT_READY_MARK"); fflush(stdout);
   if (!fgets(line,sizeof line,stdin)) return 4;
-  if (strstr(line,"QlVTWQ==")) { for (;;) sleep(1); }
+  puts("EXEC_RUNNING_MARK"); fflush(stdout);
+  if (strstr(line,"QlVTWQ==")) {
+    /* Test-only evidence that BUSY was admitted and reached the child. */
+    FILE *marker = fopen("/probe/fake-busy-entered", "wb");
+    if (!marker) return 5;
+    int failed = fputs("busy-entered\n", marker) == EOF;
+    if (fclose(marker) || failed) return 6;
+    for (;;) sleep(1);
+  }
   fputs("\nEXEC_BEGIN_MARK\nZmFrZQBieXRlcw==\n\nEXEC_END_MARK:",stdout); fflush(stdout);
   usleep(200000); puts("7"); fflush(stdout);
   for (;;) sleep(1);

@@ -1,0 +1,16 @@
+Source before: c77fcf3df0c096cc0e8c0fb40967c99dff4dadd816ddd516137d8e3d6691bace  exec-api.c
+job 41 child pid=424242
+kill pid=424242 failed: Operation not permitted
+job 41 reaped=0 status=0
+job 41 child pid=424242
+job 41 reaped=0 status=0
+job 41 child pid=424242
+job 41 reaped=1 status=9
+PASS kill=EPERM + waitpid=0: virtual 10s bound, state=6/reaped=false/active=1; POST /run=429, job unchanged
+PASS kill=0 + waitpid=ECHILD: state=6/reaped=false/active=1; POST /run=429, job unchanged
+PASS waitpid=EINTR then PID: state=4/reaped=true/active=0; next POST /run=202
+PASS spawn=EAGAIN: state=6/reaped=true/active=0; no kill/wait; next POST /run=202
+PASS cancellation before run_job: state=4/reaped=true/active=0; zero spawn/kill/wait
+ALL 5 CONTROL-FLOW SCENARIOS PASSED. No guest, child process, listener, Wasm or deployment launched.
+Source after:  c77fcf3df0c096cc0e8c0fb40967c99dff4dadd816ddd516137d8e3d6691bace  exec-api.c
+Exit status: 0

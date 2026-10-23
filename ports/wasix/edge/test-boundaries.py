@@ -17,7 +17,7 @@ def result(i,limit=180):
  while time.monotonic()<end:
   v=request('/jobs/'+str(i))[1]
   if v['state']>=3 and v['reaped']:
-   v['output']=base64.b64decode(v.pop('output_base64')).decode(errors='replace');return v
+   v['output']=base64.b64decode(v.pop('output_base64'),validate=True).decode(errors='strict');return v
   if p.poll() is not None:raise RuntimeError('supervisor exited')
   time.sleep(.25)
  raise RuntimeError('deadline')
@@ -26,13 +26,25 @@ try:
   try:request('/health');break
   except urllib.error.URLError:time.sleep(.1)
  report['health_seconds']=time.monotonic()-start
- source='local s=io.read("*a"); assert(#s==65536); io.write("MAX_INPUT_PASS",string.char(0)); --' 
- source += 'x'*(65536-len(source))
- i=submit(source,b'z'*65536);report['max_input']=result(i);assert report['max_input']['state']==3 and report['max_input']['exit_code']==0 and 'MAX_INPUT_PASS' in report['max_input']['output'],report['max_input']
- i=submit('io.write(string.rep("X",200000)); io.flush()');report['output_limit']=result(i);assert report['output_limit']['reaped'] and len(report['output_limit']['output'])<=131072,report['output_limit']
+ prefix='--[['
+ suffix=']] local s=io.read("*a"); assert(#s==8192 and s==string.rep("z",8192)); io.write("MAX_INPUT_PASS",string.char(0))'
+ source=prefix+'x'*(8192-len(prefix)-len(suffix))+suffix
+ i=submit(source,b'z'*8192);report['max_input']=result(i);assert report['max_input']['state']==3 and report['max_input']['exit_code']==0 and report['max_input']['output']=='MAX_INPUT_PASS\x00',report['max_input']
+ i=submit('io.write(string.rep("X",131072)); assert(io.flush())');report['exact_output']=result(i);assert report['exact_output']['state']==3 and report['exact_output']['exit_code']==0 and report['exact_output']['output']=='X'*131072, {k:v for k,v in report['exact_output'].items() if k!='output'}
+ report['exact_output']['output_bytes']=len(report['exact_output'].pop('output'))
+ i=submit('io.write(string.rep("X",200000)); io.flush()');report['output_limit']=result(i);assert report['output_limit']['state']==3 and report['output_limit']['exit_code']!=0 and report['output_limit']['output']=='X'*131072,{k:v for k,v in report['output_limit'].items() if k!='output'}
  # Keep large bounded output out of the committed report.
  report['output_limit']['output_bytes']=len(report['output_limit'].pop('output'))
- i=submit('while true do end');report['timeout']=result(i);assert report['timeout']['state']==5 and report['timeout']['error']=='execution timeout',report['timeout']
+ i=submit('while true do end')
+ deadline=time.monotonic()+180
+ while time.monotonic()<deadline:
+  v=request('/jobs/'+str(i))[1]
+  if v['state']==2:break
+  assert v['state']<3,v
+  time.sleep(.1)
+ else:raise AssertionError('timeout case never reached executing state')
+ running=time.monotonic();report['timeout']=result(i);report['timeout']['observed_running_seconds']=time.monotonic()-running
+ assert report['timeout']['state']==5 and report['timeout']['error']=='execution timeout' and 28<=report['timeout']['observed_running_seconds']<=42,report['timeout']
  report['result']='passed'
 except Exception as e:report['result']='failed';report['error']=str(e)
 finally:

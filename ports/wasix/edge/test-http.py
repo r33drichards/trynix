@@ -35,6 +35,7 @@ try:
  while time.monotonic()<end:
   if request('/jobs/'+str(i))[1]['state']==2:break
   time.sleep(.25)
+ else:raise AssertionError('cancel case never reached executing state')
  request('/jobs/'+str(i)+'/cancel','POST');report['cancel']=result(i,10);assert report['cancel']['state']==4
  report['result']='passed'
 except Exception as e:report['result']='failed';report['error']=str(e)

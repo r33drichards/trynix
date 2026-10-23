@@ -1,0 +1,9 @@
+Lua API ready port=18081 mode=local
+job 1 child pid=3
+job 1 reaped=1 status=6912
+job 2 child pid=6
+job 2 reaped=1 status=6912
+job 3 child pid=9
+job 3 reaped=1 status=6912
+job 4 child pid=12
+job 4 reaped=1 status=6912
