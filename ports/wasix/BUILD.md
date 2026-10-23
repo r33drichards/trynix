@@ -42,3 +42,8 @@ The runtime patch is applied after the base patch. Binaryen wasm-dis/wasm-as fro
 Lightweight packaging regressions (no guest boot): `python3 ports/wasix/test-runner.py`, `python3 ports/wasix/test-mapped-share.py`, and `python3 ports/wasix/test-cache-transform.py`. The generated-helper ABI test is `bash ports/wasix/test-generated-thunks.sh "$QEMU_SOURCE" "$DEPS_PREFIX" "$TEST_OUTPUT"`.
 
 Final-guest lifecycle sanity gate (creates a new output directory): `python3 ports/wasix/test-guest-lifecycle.py WASM PACK MAPPED_SHARE NEW_OUTPUT`. It runs two sequential guests, checks warm reuse and guest-read-only export, cancels busy Lua, then checks fresh guest RAM state. It is not a malicious-guest isolation test.
+
+
+## Toolchain reproducibility caveat
+
+The wasixcc wrapper version alone does not fully pin its downloaded dependencies. The passing workspace installer log records WASIX libc sysroot v2026-10-02.1 (exnref-eh variant), Wasmer LLVM release21.1.206 and Binaryen133. Exact artifact URLs are recorded as observed_toolchain_dependencies in pins.json. Their original downloaded archives/checksums and exact linked libc/compiler-rt source revisions were not retained. Do not silently substitute current latest dependencies or describe this as a fully locked toolchain. See edge/REDISTRIBUTION.md before binary registry publication.
