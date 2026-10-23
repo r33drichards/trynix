@@ -21,7 +21,7 @@ a=p.parse_args()
 if not math.isfinite(a.timeout) or a.timeout <= 0:
  p.error("timeout must be finite and positive")
 machine=json.loads((a.pack/'machine.json').read_text())
-args=[x.replace('{pack}','/pack').replace('{share}','/share').replace('{ram}','512M').replace('security_model=none','security_model=mapped-file').replace('tcg,tb-size=500','tcg,tb-size=16') for x in machine['args']]
+args=[x.replace('{pack}','/pack').replace('{share}','/share').replace('{ram}','512M').replace('security_model=none','security_model=mapped-file,readonly=on').replace('tcg,tb-size=500','tcg,tb-size=16') for x in machine['args']]
 if a.verbose_kernel:
  args=[x.replace('loglevel=4','loglevel=7 earlyprintk=serial,ttyS0,115200') for x in args]
 cmd=['wasmer','run','--offline','--no-tty','--volume',f'{a.pack.resolve()}:/pack','--volume',f'{a.share.resolve()}:/share',str(a.wasm.resolve()),'--',*args]

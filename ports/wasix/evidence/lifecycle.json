@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "scope": "guest sanity isolation/warm reuse/process cancellation; not hostile escape resistance, Edge or snapshots",
+  "results": [
+    {
+      "instance": 1,
+      "steps": {
+        "first_lua_seconds": 67.802,
+        "warm_second_seconds": 68.209,
+        "guest_boundary_seconds": 68.725,
+        "busy_started_seconds": 69.111
+      },
+      "result": "cancelled_busy_guest",
+      "returncode": -9,
+      "process_group_gone": true,
+      "cleanup_seconds": 0.008,
+      "elapsed_seconds": 71.127
+    },
+    {
+      "instance": 2,
+      "steps": {},
+      "result": "fresh_after_cancel_pass",
+      "returncode": -9,
+      "process_group_gone": true,
+      "cleanup_seconds": 0.016,
+      "elapsed_seconds": 23.469
+    }
+  ],
+  "cumulative_child_peak_rss_kib": 655896
+}
