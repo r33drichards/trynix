@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "malformed_statuses": [
+    400,
+    400,
+    413,
+    400,
+    400
+  ],
+  "fragmented_request": true,
+  "split_exit_record": 7,
+  "binary_output": true,
+  "exact_cancel_route": true,
+  "busy_rejected": true,
+  "cancel_then_fresh": true
+}
