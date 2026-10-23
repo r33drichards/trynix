@@ -1,0 +1,325 @@
+{
+  "components": [
+    {
+      "derivation": "hvvaz4as19i97iisyh3bn610r2v5ldn6-ncurses-6.6.drv",
+      "outputs": [
+        [
+          "dev",
+          "/nix/store/8awcq8rqlfmrk2qp202fbv09zpvr6bh4-ncurses-6.6-dev",
+          "",
+          ""
+        ],
+        [
+          "man",
+          "/nix/store/j7jpq1bligg8qvkdh7mki29x9pg2zvwz-ncurses-6.6-man",
+          "",
+          ""
+        ],
+        [
+          "out",
+          "/nix/store/r9nlzwasmr1hgcbrfzcp2b2cz33scij2-ncurses-6.6",
+          "",
+          ""
+        ]
+      ],
+      "source": {
+        "storePath": "/nix/store/1hkx09zxzwwhqwnr5rdi7r2v7jbiki00-ncurses-6.6.tar.gz",
+        "file": "1hkx09zxzwwhqwnr5rdi7r2v7jbiki00-ncurses-6.6.tar.gz",
+        "fetch": {
+          "derivation": "splizch9ql7nz9zgpm1bm0d1q0nd5l4h-ncurses-6.6.tar.gz.drv",
+          "urls": [
+            "https://invisible-island.net/archives/ncurses/ncurses-6.6.tar.gz",
+            "https://invisible-mirror.net/archives/ncurses/ncurses-6.6.tar.gz"
+          ],
+          "sha256": "355b4cbbed880b0381a04c46617b7656e362585d52e9cf84a67e2009b749ff11"
+        }
+      },
+      "patches": [],
+      "verification": "Derivation and source/patch NAR signatures/hashes verified; declared output identities match shipped closure. No rebuild performed."
+    },
+    {
+      "derivation": "yx02z8md2355mdxcr8g6jqxc80pfimfg-libunistring-1.4.2.drv",
+      "outputs": [
+        [
+          "dev",
+          "/nix/store/y9xzk7smf2m8jfqhgyfkyng44ywy1qcx-libunistring-1.4.2-dev",
+          "",
+          ""
+        ],
+        [
+          "doc",
+          "/nix/store/8hnchsnv8nm7h7948zp7dxqzr9zx55lf-libunistring-1.4.2-doc",
+          "",
+          ""
+        ],
+        [
+          "info",
+          "/nix/store/7897wf0w7sl0dg0sh4bi8f3cqhgjmj3b-libunistring-1.4.2-info",
+          "",
+          ""
+        ],
+        [
+          "out",
+          "/nix/store/bx7jdvkba26sy20ryr4l617qqmzj9hff-libunistring-1.4.2",
+          "",
+          ""
+        ]
+      ],
+      "source": {
+        "storePath": "/nix/store/l6b9nvw7fhknbn8f4g7zgglg5y2cf5ki-libunistring-1.4.2.tar.gz",
+        "file": "l6b9nvw7fhknbn8f4g7zgglg5y2cf5ki-libunistring-1.4.2.tar.gz",
+        "fetch": {
+          "derivation": "z6v5624dkfqg57qjzg6fadpxp07axkhv-libunistring-1.4.2.tar.gz.drv",
+          "urls": "https://ftpmirror.gnu.org/libunistring/libunistring-1.4.2.tar.gz",
+          "sha256": "e82664b170064e62331962126b259d452d53b227bb4a93ab20040d846fec01d8"
+        }
+      },
+      "patches": [],
+      "verification": "Derivation and source/patch NAR signatures/hashes verified; declared output identities match shipped closure. No rebuild performed."
+    },
+    {
+      "derivation": "lnsl90590vdiyzk0zas3anx25rkfbnqx-glibc-2.44-57.drv",
+      "outputs": [
+        [
+          "bin",
+          "/nix/store/j64r0mf0yy7pvcbavlqidfnpsdnrldj2-glibc-2.44-57-bin",
+          "",
+          ""
+        ],
+        [
+          "debug",
+          "/nix/store/v2d3x3nah3fja4mlhmzfw44r0brgi0rx-glibc-2.44-57-debug",
+          "",
+          ""
+        ],
+        [
+          "dev",
+          "/nix/store/3zlgjcfm8j3nscrldjv8izxciybg0nh3-glibc-2.44-57-dev",
+          "",
+          ""
+        ],
+        [
+          "getent",
+          "/nix/store/6cz4wzbi3x34ii46hgfk3mvs7nal1c5l-glibc-2.44-57-getent",
+          "",
+          ""
+        ],
+        [
+          "out",
+          "/nix/store/pqyiidz5mi73wv5f91d48s9plcqyj5bz-glibc-2.44-57",
+          "",
+          ""
+        ],
+        [
+          "static",
+          "/nix/store/z49jwydvhdkyiahji56zppsif4i7gs5x-glibc-2.44-57-static",
+          "",
+          ""
+        ]
+      ],
+      "source": {
+        "storePath": "/nix/store/jq00nlpdcxgcj5xwx25jibn61a611234-glibc-2.44.tar.xz",
+        "file": "jq00nlpdcxgcj5xwx25jibn61a611234-glibc-2.44.tar.xz",
+        "fetch": {
+          "derivation": "mh16bz0abm769bq4g6k8md300pq7f9i5-glibc-2.44.tar.xz.drv",
+          "urls": "https://ftpmirror.gnu.org/glibc/glibc-2.44.tar.xz",
+          "sha256": "37f600f2bef3c5e8300147059568b2a2e40a7ad6ccc65ce942556d49429cc667"
+        }
+      },
+      "patches": [
+        {
+          "storePath": "/nix/store/q04sk7l470q1l77mdd5l6j8h63rk5k69-2.44-master.patch",
+          "file": "q04sk7l470q1l77mdd5l6j8h63rk5k69-2.44-master.patch",
+          "sha256": "185660b72a9e7af35ef3e578169f5adbe3b3fa32c5a19e5e19762b709a9afd85"
+        },
+        {
+          "storePath": "/nix/store/pyrilqws1mgmdh6x5i3aj1c1xa53hb6r-nix-locale-archive.patch",
+          "file": "pyrilqws1mgmdh6x5i3aj1c1xa53hb6r-nix-locale-archive.patch",
+          "sha256": "380a49b6c9815d351cc979ffeb9eb1bb3022761c16237a4bf74b14757651dafc"
+        },
+        {
+          "storePath": "/nix/store/43lp683anlywwy1m6rv0mrw9m2iv681q-dont-use-system-ld-so-cache.patch",
+          "file": "43lp683anlywwy1m6rv0mrw9m2iv681q-dont-use-system-ld-so-cache.patch",
+          "sha256": "bb0b543b60be2140a2385dd53cab405b18ca60cb70505c5019213466d91196dd"
+        },
+        {
+          "storePath": "/nix/store/mnglr8rr7nl444h7p50ysyq8qd0fm1lm-dont-use-system-ld-so-preload.patch",
+          "file": "mnglr8rr7nl444h7p50ysyq8qd0fm1lm-dont-use-system-ld-so-preload.patch",
+          "sha256": "de897e0f53379f87459f5d350a229768159159f5e44eb7f6bd3050fd416d4aa6"
+        },
+        {
+          "storePath": "/nix/store/llr530f1l6c470xkl2w80k2kkfqddmpm-fix_path_attribute_in_getconf.patch",
+          "file": "llr530f1l6c470xkl2w80k2kkfqddmpm-fix_path_attribute_in_getconf.patch",
+          "sha256": "b273e671ab5cf49b78d656e15ed0682264c14e006db4303d0d3947520f2ba3c8"
+        },
+        {
+          "storePath": "/nix/store/7kw224hdyxd7115lrqh9a4dv2x8msq2s-fix-x64-abi.patch",
+          "file": "7kw224hdyxd7115lrqh9a4dv2x8msq2s-fix-x64-abi.patch",
+          "sha256": "580f5475cff8d9f4e3c37d5dc9044e3c1912b211fe97adc7db1ea0c01ce785a7"
+        },
+        {
+          "storePath": "/nix/store/jzyh2wkk6dvv1rxj2skhly6izqsaf6im-nix-nss-open-files.patch",
+          "file": "jzyh2wkk6dvv1rxj2skhly6izqsaf6im-nix-nss-open-files.patch",
+          "sha256": "d04b9537591542f29965d1b7b203a3b08fff6b6d754a34c7e4f72c97e442fd13"
+        },
+        {
+          "storePath": "/nix/store/ywdz7fsdiff19745v59snscar3qsgd79-0001-Revert-Remove-all-usage-of-BASH-or-BASH-in-installed.patch",
+          "file": "ywdz7fsdiff19745v59snscar3qsgd79-0001-Revert-Remove-all-usage-of-BASH-or-BASH-in-installed.patch",
+          "sha256": "2eeada97a2f55c6279d203f6e37a269a3879e56b6905a19a85035d54e128e0a2"
+        },
+        {
+          "storePath": "/nix/store/sj0qllprnrmk1cqnnk57vvn2cqgjynbx-reenable_DT_HASH.patch",
+          "file": "sj0qllprnrmk1cqnnk57vvn2cqgjynbx-reenable_DT_HASH.patch",
+          "sha256": "cf9fe494f7ec69752a63d1b0a9ad689aa620888ae9b902b6383a6fbc7c1726a7"
+        },
+        {
+          "storePath": "/nix/store/f1qmmr4f6mi99xr5bvfrqmynjx9j038p-0001-localedata-allow-reproducible-parallel-install-of-lo.patch",
+          "file": "f1qmmr4f6mi99xr5bvfrqmynjx9j038p-0001-localedata-allow-reproducible-parallel-install-of-lo.patch",
+          "sha256": "62e288ad034f4620b754edc762412e0552f2bff838796bc69d002314992647d3"
+        },
+        {
+          "storePath": "/nix/store/62qh08ij1zvw5lxj69n98lzv0byda0di-0002-Makeconfig-make-inst_complocaledir-overridable.patch",
+          "file": "62qh08ij1zvw5lxj69n98lzv0byda0di-0002-Makeconfig-make-inst_complocaledir-overridable.patch",
+          "sha256": "cc5ea6a776de0d23e84f955830e59cbc7aa2e8611f5123fe93a98ba2e47d8a07"
+        }
+      ],
+      "verification": "Derivation and source/patch NAR signatures/hashes verified; declared output identities match shipped closure. No rebuild performed."
+    },
+    {
+      "derivation": "6fl0gjqksasg1zh79h0ii1ixqg69w4g2-xgcc-16.2.0.drv",
+      "outputs": [
+        [
+          "checksum",
+          "/nix/store/zx3yh13x9qjrp5q8h7y1adnkld3nnss2-xgcc-16.2.0-checksum",
+          "",
+          ""
+        ],
+        [
+          "info",
+          "/nix/store/81rpgp3d5hhw44d9fzd54gjbcziw1b40-xgcc-16.2.0-info",
+          "",
+          ""
+        ],
+        [
+          "lib",
+          "/nix/store/vvccka2hkl3y4rldhq7g589afklgaqiw-xgcc-16.2.0-lib",
+          "",
+          ""
+        ],
+        [
+          "libgcc",
+          "/nix/store/pkkjnyk4z46n18fkyqwlg24p272apb69-xgcc-16.2.0-libgcc",
+          "",
+          ""
+        ],
+        [
+          "man",
+          "/nix/store/wqi89ncx70wnixvxnhywlwasrf5h8ca1-xgcc-16.2.0-man",
+          "",
+          ""
+        ],
+        [
+          "out",
+          "/nix/store/n3218lp94fd1jicxn3ljcph1032n67v4-xgcc-16.2.0",
+          "",
+          ""
+        ]
+      ],
+      "source": {
+        "storePath": "/nix/store/chw5kxp89wq3wkc37f6fr8wiw4yc7paj-gcc-16.2.0.tar.xz",
+        "file": "gcc-16.2.0.tar.xz",
+        "fetch": {
+          "derivation": "k4nw7k8a93b04zkxyl039y26yscl56d0-gcc-16.2.0.tar.xz.drv",
+          "urls": "https://mirrorservice.org/sites/sourceware.org/pub/gcc/releases/gcc-16.2.0/gcc-16.2.0.tar.xz",
+          "sha256": "e6738e29597f733270731aa90600f37ffdc045079dfc27ec7e8192cc81085c3e"
+        }
+      },
+      "patches": [
+        {
+          "storePath": "/nix/store/9577hmdlmhki67cg8ar85cvidyg7xr7p-gcc-12-no-sys-dirs.patch",
+          "file": "9577hmdlmhki67cg8ar85cvidyg7xr7p-gcc-12-no-sys-dirs.patch",
+          "sha256": "4abc31ac4368f3ac10b19b42b4f080ccb5977ff49211c8c8e1492c264271ebae"
+        },
+        {
+          "storePath": "/nix/store/7x6bimj6ipi6ag859gi2fc6by87x37j7-no-sys-dirs-riscv.patch",
+          "file": "7x6bimj6ipi6ag859gi2fc6by87x37j7-no-sys-dirs-riscv.patch",
+          "sha256": "3c0c0ea14bda435516384dae76502ecd508a96f6bbc0881502fa189c3591f5e9"
+        },
+        {
+          "storePath": "/nix/store/xpplvxiwb4li2qd5nvhyd2mngrpna0ya-mangle-NIX_STORE-in-__FILE__.patch",
+          "file": "xpplvxiwb4li2qd5nvhyd2mngrpna0ya-mangle-NIX_STORE-in-__FILE__.patch",
+          "sha256": "f4a59563e2ad9b3fb98df08e33a5b0ada7cfa9fe93f89c7e38ced660f0cd6196"
+        },
+        {
+          "storePath": "/nix/store/632b0y5mkcdwbsw2g3xh5qznw2vv5axr-ppc-musl.patch",
+          "file": "632b0y5mkcdwbsw2g3xh5qznw2vv5axr-ppc-musl.patch",
+          "sha256": "37f933880690ce9cc155de9b2f9b2179f23916692806e20ce3111a7ee33aa67e"
+        },
+        {
+          "storePath": "/nix/store/3cj8qm3xjz1g5f7qnnxlc95i9imkicbk-cfi_startproc-reorder-label-14-1.diff",
+          "file": "3cj8qm3xjz1g5f7qnnxlc95i9imkicbk-cfi_startproc-reorder-label-14-1.diff",
+          "sha256": "976fe1a93e189cb78be89c5ce04d15d32480a34b47c687568d8cb2bb90ed8dac"
+        },
+        {
+          "storePath": "/nix/store/dkxrwjh0a5sdzzhz0syswy6mv8zzbp34-loongarch-fix-miscompile-of-both_non_zero.patch",
+          "file": "dkxrwjh0a5sdzzhz0syswy6mv8zzbp34-loongarch-fix-miscompile-of-both_non_zero.patch",
+          "sha256": "3beb581d0bfb993c28581530f962561afd85cfaf6e0a9bdf7e3c2f2a1749f621"
+        }
+      ],
+      "verification": "Derivation and source/patch NAR signatures/hashes verified; declared output identities match shipped closure. No rebuild performed."
+    },
+    {
+      "derivation": "jpk0d1hjlr347h3wnl1s98p2mss58a83-libidn2-2.3.8.drv",
+      "outputs": [
+        [
+          "bin",
+          "/nix/store/6qf8wwyqgib712hs28pzaz962w9g2b5r-libidn2-2.3.8-bin",
+          "",
+          ""
+        ],
+        [
+          "dev",
+          "/nix/store/sydqsfly6c7j7ngw84gn01234qwpkq28-libidn2-2.3.8-dev",
+          "",
+          ""
+        ],
+        [
+          "devdoc",
+          "/nix/store/3yhdxmmdrv2k3rasrnhj3lyd87g7d4a2-libidn2-2.3.8-devdoc",
+          "",
+          ""
+        ],
+        [
+          "info",
+          "/nix/store/imnfc4dwnscn0qmwxlyzpqw5plisjly8-libidn2-2.3.8-info",
+          "",
+          ""
+        ],
+        [
+          "out",
+          "/nix/store/00fs4zz9c0jjcvs62wg39b91dydz7zqb-libidn2-2.3.8",
+          "",
+          ""
+        ]
+      ],
+      "source": {
+        "storePath": "/nix/store/9dcs318zy7jbxz8kfdjnxd1c6s1xd2vy-libidn2-2.3.8.tar.gz",
+        "file": "9dcs318zy7jbxz8kfdjnxd1c6s1xd2vy-libidn2-2.3.8.tar.gz",
+        "fetch": {
+          "derivation": "3xs5n9hmbbmc5qis9zzs764ilbjk0v72-libidn2-2.3.8.tar.gz.drv",
+          "urls": "https://ftp.gnu.org/gnu/libidn/libidn2-2.3.8.tar.gz",
+          "sha256": "f557911bf6171621e1f72ff35f5b1825bb35b52ed45325dcdee931e5d3c0787a"
+        }
+      },
+      "patches": [],
+      "verification": "Derivation and source/patch NAR signatures/hashes verified; declared output identities match shipped closure. No rebuild performed."
+    }
+  ],
+  "lua": {
+    "output": "/nix/store/1xi0ly6fi0mw561qmv2mf3r20v17frl9-lua-5.5.1",
+    "binaryOrigin": "signed cache.nixos.org NAR, see closure-evidence.json",
+    "notice": "notices/Lua-5.5.1-MIT.txt extracted from shipped lua.h",
+    "derivation": "86lz1hzzx4kkzfjgx650a84flxj8w3k6-lua-5.5.1.drv HTTP404",
+    "limitation": "Exact Lua recipe unavailable; pinned guest nixpkgs has Lua5.5.0, not shipped5.5.1. MIT notice retained; missing source derivation is not by itself a source-offer obligation."
+  }
+}

@@ -213,7 +213,21 @@ int main(void)
     assert(spawn_calls == 0 && kill_calls == 0 && wait_calls == 0 && sleep_calls == 0);
     puts("PASS cancellation before run_job: state=4/reaped=true/active=0; zero spawn/kill/wait");
 
+    public_poc = 1;
+    public_expires_at = 0;
+    accepted_jobs = PUBLIC_JOB_LIMIT;
+    admission_window_start = 0;
+    next_admission = 0;
+    virtual_ns = INT64_C(599000000000);
+    assert(!public_expired() && public_admission_limited());
+    virtual_ns = INT64_C(600000000000);
+    assert(!public_admission_limited() && accepted_jobs == 0);
+    next_admission = 610;
+    assert(public_admission_limited());
+    virtual_ns = INT64_C(610000000000);
+    assert(!public_admission_limited());
+    puts("PASS persistent admission: exhausted window rejects, 600s resets, spacing retained; no expiry configured");
     assert(close(listener) == 0);
-    puts("ALL 5 CONTROL-FLOW SCENARIOS PASSED. No guest, child process, listener, Wasm or deployment launched.");
+    puts("ALL 6 CONTROL-FLOW SCENARIOS PASSED. No guest, child process, listener, Wasm or deployment launched.");
     return 0;
 }

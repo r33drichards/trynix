@@ -62,10 +62,11 @@ static int listener = -1;
 static int shutdown_requested, active;
 static int public_poc, response_pending;
 static unsigned accepted_jobs;
-static double next_admission;
+static double next_admission, admission_window_start;
 static uint64_t public_expires_at;
 #define PUBLIC_JOB_LIMIT 3
 #define PUBLIC_ADMISSION_SECONDS 10
+#define PUBLIC_WINDOW_SECONDS 600
 
 static double now(void)
 {
@@ -78,12 +79,24 @@ static double now(void)
     return t.tv_sec + t.tv_nsec / 1e9;
 }
 
-/* Wall-clock expiry is shared configuration across all fresh instances.
- * Missing/broken clock fails closed. This is exposure duration, not a cost cap.
+/* Caller holds lock. Fixed per-instance windows are not a global quota. */
+static int public_admission_limited(void)
+{
+    if (!public_poc) return 0;
+    double t = now();
+    if (t - admission_window_start >= PUBLIC_WINDOW_SECONDS) {
+        admission_window_start = t;
+        accepted_jobs = 0;
+    }
+    return accepted_jobs >= PUBLIC_JOB_LIMIT || t < next_admission;
+}
+
+/* Optional wall-clock expiry is shared configuration across fresh instances.
+ * Unset means persistent service. A configured expiry fails closed on clock error.
  */
 static int public_expired(void)
 {
-    if (!public_poc) return 0;
+    if (!public_poc || !public_expires_at) return 0;
     struct timespec t;
     return clock_gettime(CLOCK_REALTIME, &t) || t.tv_sec < 0 ||
         (uint64_t)t.tv_sec >= public_expires_at;
@@ -791,7 +804,7 @@ static int handle(int c)
     if (run) {
         pthread_mutex_lock(&lock);
         if (active || response_pending || j.id == UINT_MAX ||
-            (public_poc && (accepted_jobs >= PUBLIC_JOB_LIMIT || now() < next_admission))) {
+            public_admission_limited()) {
             pthread_mutex_unlock(&lock);
             reply(c, 429, "{\"error\":\"busy\"}");
             goto finish;
@@ -880,13 +893,13 @@ int main(int argc, char **argv)
         const char *expiry = getenv("POC_EXPIRES_AT");
         size_t value;
         struct timespec t;
-        if (!expiry || decimal_size(expiry, &value) || !value ||
+        if (expiry && (decimal_size(expiry, &value) || !value ||
             clock_gettime(CLOCK_REALTIME, &t) || t.tv_sec < 0 ||
-            (uint64_t)value > (uint64_t)t.tv_sec + 3600) {
-            fprintf(stderr, "PUBLIC_POC requires POC_EXPIRES_AT within the next hour\n");
+            (uint64_t)value > (uint64_t)t.tv_sec + 3600)) {
+            fprintf(stderr, "Optional POC_EXPIRES_AT must be valid and within the next hour\n");
             return 2;
         }
-        public_expires_at = value;
+        if (expiry) public_expires_at = value;
     }
     const char *port_text = getenv("PORT");
     size_t port = public_poc ? 80 : 18081;
@@ -912,8 +925,8 @@ int main(int argc, char **argv)
         return 4;
     }
     fprintf(stderr, "Lua API ready port=%zu mode=%s\n", port, public_poc ? "public-poc" : "local");
-    double deadline = now() + 600;
-    while (now() < deadline) {
+    admission_window_start = now();
+    while (1) {
         struct pollfd p = { .fd = listener, .events = POLLIN };
         int ready = poll(&p, 1, 100);
         if (ready < 0 && errno == EINTR) continue;

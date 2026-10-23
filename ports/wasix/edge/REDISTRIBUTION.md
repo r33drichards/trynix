@@ -1,20 +1,18 @@
-# Binary package provenance checkpoint
+# Binary/source redistribution checkpoint
 
-The draft PR publishes source and test evidence, not compiled binaries. Local .webc packaging/execution passed, but the local container is not yet a complete redistribution/source-notice bundle. This is an engineering inventory, not legal clearance.
+The draft PR publishes source, source-collection indexes and test evidence, not compiled binaries or large upstream archives. The passing local .webc is not yet accompanied by a published source/notices offering. This is an engineering inventory, not legal clearance.
 
-## Available materials
+## Resolved locally
 
-- QEMU fork/upstream archives, exact commit, runtime patches, build/postprocessing scripts and source licenses.
-- GLib2.75.0, libffi09cbf7d (3.5.1), zlib1.3.1, PCRE2 10.40 and libfdt source/notices. The final QEMU link includes PCRE2 and libfdt; do not omit them from the inventory. PCRE2 source and Meson patch archive checksums are recorded in pins.json.
-- SeaBIOS source and GPL/LGPL notices are present inside the upstream QEMU8.2.0 archive; packaged BIOS blobs match that archive. QEMU pc-bios/optionrom includes linuxboot/kvmvapic sources.
-- Pinned TryNix kernel recipe/configs, guest init and reseed source. Lua signed NAR verification evidence and Lua MIT notice in include/lua.h.
+- QEMU fork/upstream, GLib, libffi, zlib, PCRE2, libfdt and firmware source archives; actual port patches/build/postprocessing sources are retained. Static GLib relinking requires usable application source/build materials, not just a license text.
+- Guest Linux7.2.5, BusyBox1.37.0 and musl1.2.6 sources, pinned Nixpkgs tree, configuration-generation recipes, kernel embedded configuration and all applicable pinned patches/headers are collected. All15 external inputs match hashes. Guest artifacts match upstream TryNix pins; BusyBox bytes match signed NixOS cache output.
+- WASIX libc revision2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60 and interface sources, LLVM runtime revision6bb93a243f6d15855f485f5aec3810d9e2de150d and component notices are resolved. Installed compiler is a separate revision. Full LLVM source tree was not mirrored; retained exact source references/notices and license requirements must not be confused with proving a historical floating CI environment.
+- Five Lua closure dependencies have signed-cache derivations declaring the shipped output identities. Every source archive matches its source-fetch derivation hash, and all glibc/GCC patches are retained. Lua's exact MIT copyright/permission notice comes from shipped lua.h.
 
-## Gaps before treating registry packaging as complete
+## Caveats versus actual delivery gates
 
-1. Add TryNix's MIT notice, applicable third-party notices and a source index mapping every shipped binary to exact source/configuration/patch/build materials. The local manifest currently has no complete notices bundle.
-2. Resolve exact linked WASIX libc/compiler-rt source revisions and notices for both supervisor and QEMU. Observed installer release URLs are not verified source-commit correspondence; wasixcc wrapper version alone is not a complete toolchain pin.
-3. Collect matching guest Linux source, BusyBox1.37.0 source/config/patches and static musl/runtime inputs. Pinned nixpkgs revision0968519e14f7aa7d3e9b389682bd74d2b51c8ce8 is recorded in the repository, but its source tree and these source archives were not collected in the passing workspace.
-4. Retain source derivation mappings and notices for all six mapped closure outputs: Lua5.5.1, glibc2.44-57, ncurses6.6, libgcc16.2.0, libidn2 2.3.8 and libunistring1.4.2. The existing prepare-lua.mjs parser discards Narinfo Deriver; signed binary provenance does not establish corresponding source.
-5. Bind final package/supervisor/QEMU hashes and port revision to that inventory. Preserve rebuild/relink inputs, not only generic upstream links. No assertion of complete redistribution compliance is made here.
+Lua's own .drv and BusyBox's original .drv return404. BusyBox generated .config is not embedded; its locked configuration-generation/build recipe is retained. Musl linkage is recipe-inferred. These are documented provenance/reproducibility caveats, not automatic requirements to reproduce every historical compiler or obtain a bit-identical rebuild. Lua MIT requires its notice, not a source offer.
 
-No source downloads, registry uploads, account grants or deployments were performed for this read-only audit.
+Before binary publication, include applicable notices and provide corresponding-source/configuration/patch/build materials under the relevant GPL/LGPL options. Generic upstream links alone omit distribution patches and configuration. The planned companion source artifact must be offered alongside the binary at the same distribution destination and verified accessible. No multi-year written offer is made or silently imposed. See source-index/BUNDLE-PLAN.md and component indexes; indexed local source paths are collection-relative, not published downloads.
+
+Bind final source inventory to evidence/persistent-artifacts.json, final source revision and any subsequent final package hash. Preserve usable rebuild/relink materials and recipients' applicable modification rights. Source retrieval has been performed; no registry upload, token creation or Edge deployment has occurred.

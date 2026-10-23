@@ -82,7 +82,7 @@ def wait_until(deadline):
 try:
     process = subprocess.Popen(
         ["wasmer", "run", "--offline", "--net", "--no-tty",
-         "--env", "PUBLIC_POC=1", "--env", f"POC_EXPIRES_AT={int(time.time())+300}", "--env", "PORT=18082",
+         "--env", "PUBLIC_POC=1", "--env", "PORT=18082",
          "--volume", f"{build}:/probe", str(a.wasm.resolve()),
          "--", "/probe/" + a.fake.name],
         stdout=log, stderr=subprocess.STDOUT, start_new_session=True,

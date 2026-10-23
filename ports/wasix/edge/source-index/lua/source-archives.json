@@ -1,0 +1,71 @@
+[
+  {
+    "archive": "l6b9nvw7fhknbn8f4g7zgglg5y2cf5ki-libunistring-1.4.2.tar.gz",
+    "sha256": "e82664b170064e62331962126b259d452d53b227bb4a93ab20040d846fec01d8",
+    "notices": [
+      "notices/l6b9nvw7fhknbn8f4g7zgglg5y2cf5ki-libunistring-1.4.2.tar.gz__libunistring-1.4.2__README",
+      "notices/l6b9nvw7fhknbn8f4g7zgglg5y2cf5ki-libunistring-1.4.2.tar.gz__libunistring-1.4.2__COPYING",
+      "notices/l6b9nvw7fhknbn8f4g7zgglg5y2cf5ki-libunistring-1.4.2.tar.gz__libunistring-1.4.2__AUTHORS",
+      "notices/l6b9nvw7fhknbn8f4g7zgglg5y2cf5ki-libunistring-1.4.2.tar.gz__libunistring-1.4.2__COPYING.LIB"
+    ]
+  },
+  {
+    "archive": "1hkx09zxzwwhqwnr5rdi7r2v7jbiki00-ncurses-6.6.tar.gz",
+    "sha256": "355b4cbbed880b0381a04c46617b7656e362585d52e9cf84a67e2009b749ff11",
+    "notices": [
+      "notices/1hkx09zxzwwhqwnr5rdi7r2v7jbiki00-ncurses-6.6.tar.gz__ncurses-6.6__AUTHORS",
+      "notices/1hkx09zxzwwhqwnr5rdi7r2v7jbiki00-ncurses-6.6.tar.gz__ncurses-6.6__COPYING"
+    ]
+  },
+  {
+    "archive": "jq00nlpdcxgcj5xwx25jibn61a611234-glibc-2.44.tar.xz",
+    "sha256": "37f600f2bef3c5e8300147059568b2a2e40a7ad6ccc65ce942556d49429cc667",
+    "notices": [
+      "notices/jq00nlpdcxgcj5xwx25jibn61a611234-glibc-2.44.tar.xz__glibc-2.44__COPYING.LIB",
+      "notices/jq00nlpdcxgcj5xwx25jibn61a611234-glibc-2.44.tar.xz__glibc-2.44__COPYING.LESSERv2",
+      "notices/jq00nlpdcxgcj5xwx25jibn61a611234-glibc-2.44.tar.xz__glibc-2.44__COPYINGv3",
+      "notices/jq00nlpdcxgcj5xwx25jibn61a611234-glibc-2.44.tar.xz__glibc-2.44__LICENSES",
+      "notices/jq00nlpdcxgcj5xwx25jibn61a611234-glibc-2.44.tar.xz__glibc-2.44__README",
+      "notices/jq00nlpdcxgcj5xwx25jibn61a611234-glibc-2.44.tar.xz__glibc-2.44__COPYINGv2"
+    ]
+  },
+  {
+    "archive": "gcc-16.2.0.tar.xz",
+    "sha256": "e6738e29597f733270731aa90600f37ffdc045079dfc27ec7e8192cc81085c3e",
+    "notices": [
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__libquadmath__COPYING.LIB",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__libffi__LICENSE",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__COPYING",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__libgo__LICENSE",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__libsanitizer__LICENSE.TXT",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__zlib__LICENSE",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__gcc__COPYING3.LIB",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__include__COPYING",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__gcc__COPYING3",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__libffi__LICENSE-BUILDTOOLS",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__COPYING.LIB",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__gcc__COPYING",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__libcody__LICENSE",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__libiberty__COPYING.LIB",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__gcc__COPYING.LIB",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__COPYING.RUNTIME",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__COPYING3",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__COPYING3.LIB",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__libgcobol__LICENSE",
+      "notices/gcc-16.2.0.tar.xz__gcc-16.2.0__include__COPYING3"
+    ]
+  },
+  {
+    "archive": "9dcs318zy7jbxz8kfdjnxd1c6s1xd2vy-libidn2-2.3.8.tar.gz",
+    "sha256": "f557911bf6171621e1f72ff35f5b1825bb35b52ed45325dcdee931e5d3c0787a",
+    "notices": [
+      "notices/9dcs318zy7jbxz8kfdjnxd1c6s1xd2vy-libidn2-2.3.8.tar.gz__libidn2-2.3.8__COPYING.unicode",
+      "notices/9dcs318zy7jbxz8kfdjnxd1c6s1xd2vy-libidn2-2.3.8.tar.gz__libidn2-2.3.8__COPYING",
+      "notices/9dcs318zy7jbxz8kfdjnxd1c6s1xd2vy-libidn2-2.3.8.tar.gz__libidn2-2.3.8__README.md",
+      "notices/9dcs318zy7jbxz8kfdjnxd1c6s1xd2vy-libidn2-2.3.8.tar.gz__libidn2-2.3.8__README",
+      "notices/9dcs318zy7jbxz8kfdjnxd1c6s1xd2vy-libidn2-2.3.8.tar.gz__libidn2-2.3.8__AUTHORS",
+      "notices/9dcs318zy7jbxz8kfdjnxd1c6s1xd2vy-libidn2-2.3.8.tar.gz__libidn2-2.3.8__COPYING.LESSERv3",
+      "notices/9dcs318zy7jbxz8kfdjnxd1c6s1xd2vy-libidn2-2.3.8.tar.gz__libidn2-2.3.8__COPYINGv2"
+    ]
+  }
+]
