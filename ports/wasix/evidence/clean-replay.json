@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "linux_handshake": true,
+  "lua_submitted": true,
+  "elapsed_seconds": 23.997,
+  "returncode": -9,
+  "host_peak_rss_kib": 746560,
+  "wasm_bytes": 12631774,
+  "guest_ram_mib": 512,
+  "tcg_cache_mib": 16,
+  "log": "clean-replay-serial.txt",
+  "scope": "local cold boot; not snapshot restore or Edge validation",
+  "sha256": "ae38c921b6d0b9635c4de494b1fcad7eca0a98ed0c397aec25c3c2e593b40517",
+  "sampled_peak_rss_kib": 747104
+}
