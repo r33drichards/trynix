@@ -1,6 +1,12 @@
 from pathlib import Path
 import os,stat,shutil,sys
-src=Path(sys.argv[1]).resolve();dst=Path(sys.argv[2]);dst.mkdir()
+if len(sys.argv) != 3:
+ raise SystemExit('usage: prepare-mapped-share.py SOURCE NEW_DESTINATION')
+src=Path(sys.argv[1]).resolve();dst=Path(sys.argv[2]).resolve()
+if not src.is_dir(): raise SystemExit('Source must be a directory')
+if dst == src or src in dst.parents:
+ raise SystemExit('Destination must be outside source tree')
+dst.mkdir()
 count=0
 def metadata(directory,name,mode):
  global count
