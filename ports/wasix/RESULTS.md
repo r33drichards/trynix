@@ -1,3 +1,22 @@
+# Current milestone: local Linux + Lua PASS
+
+2026-10-23, Wasmer7.5.0/wasixcc0.4.7, default Cranelift backend:
+
+- Cold guest boot, init handshake, Lua hello marker and exit0: **PASS**,63.519seconds.
+- Wasm12,630,670bytes, SHA256`cf295debf9910fd74169b77bc8f1179613ed545786c1db806b3a7ef41e50ef6a`.
+- Peak host RSS860,888KiB; guest512MiB; TCIcache16MiB; linear-memory initial768MiB/max2GiB.
+- Runner deliberately killed process group after success. Returncode-9 records cleanup, not guest failure.
+- Exact generated helper-macro ABI harness:15cases, ordinary EH1,000jumps passed; cached1,000,000jumps passed in2.122s at81,764KiB. Covers arities0–7, signed values, Int128, pointers, softfloat bits, overlapping TCI-style slots, memset, and longjmp.
+- Normal host libffi calls grew from213,364KiB at1million to742,844KiB at5million. Direct typed Wasm function calls at5million stayed80,032KiB. Source table lookup allocates retained VMFunction store handles. The new QEMU module has zero call_dynamic imports.
+- Cached typed-helper QEMU first completed Linux decompression but failed at APIC/timer setup: Cranelift SIGILL, LLVM out-of-bounds function-table access. LLVM trace mapped to QEMU sigfd_handler. Tiny sigwait returned success/signal0 before sender fired. Removing the unsupported host signal-to-fd bridge enabled complete Linux boot.
+- Lua initially failed exit126: WASIX stat reported100000 instead of host100755. Existing QEMU mapped-file metadata, with converted symlink representation, preserved executable bits and enabled Lua exit0.
+
+Remaining gates: final-artifact repeated commands/warm reuse, fresh-instance isolation/cancellation matrix, packaged combined build replay. QEMU migration and Wasmer store snapshot/restore are not validated; the exception cache explicitly forbids Wasmer store transfer/restore. No Edge deployment or quota verification.
+
+The following sections are historical baseline results before typed helpers, bounded exception caching, host-signal-contract correction and mapped-file metadata. Their earlier “not booted” statements do not describe the current milestone.
+
+---
+
 # Local results, 2026-10-23 UTC
 
 Experimental, blocked before Linux userspace. No hosted deployment was performed.

@@ -19,6 +19,7 @@ Set PORT to the absolute path of ports/wasix. On clean extracted sources:
 (cd "$LIBFFI_SOURCE" && patch -p1 < "$PORT/libffi-wasix.patch")
 (cd "$GLIB_SOURCE" && patch -p1 < "$PORT/glib-minimal.patch")
 (cd "$QEMU_SOURCE" && patch -p1 < "$PORT/qemu-wasix.patch")
+(cd "$QEMU_SOURCE" && patch -p1 < "$PORT/qemu-wasix-runtime.patch")
 cp "$PORT/coroutine-wasix.c" "$QEMU_SOURCE/util/coroutine-wasix.c"
 cp "$PORT/9p-errno-wasix.inc" "$QEMU_SOURCE/hw/9pfs/9p-errno-wasix.inc"
 bash "$PORT/build-deps.sh" "$LIBFFI_SOURCE" "$ZLIB_SOURCE" "$GLIB_SOURCE" "$DEPS_PREFIX" "$DEPS_BUILD"
@@ -28,10 +29,12 @@ wasmer run --offline "$QEMU_BUILD/qemu-system-x86_64.wasm" -- --version
 
 The dependency script passed an end-to-end replay on pristine pinned dependency sources. The QEMU script also passed a fresh build using the initial static dependencies. Meson may fetch its pinned PCRE2 10.40 fallback while building GLib. No downloaded binaries are committed here.
 
-For probes: python3 ports/wasix/test-capabilities.py. For cold boot, fetch machine.json, bzImage, initramfs.cpio.gz and the four BIOS blobs listed in pins.json from https://trynix.dev/guest/, verify every hash, and put them in PACK. Prepare a new isolated directory with node ports/wasix/prepare-lua.mjs SHARE. Then:
+For probes: python3 ports/wasix/test-capabilities.py. For cold boot, fetch machine.json, bzImage, initramfs.cpio.gz and the four BIOS blobs listed in pins.json from https://trynix.dev/guest/, verify every hash, and put them in PACK. Prepare a new isolated staging directory with `node ports/wasix/prepare-lua.mjs STAGING`, then convert it with `python3 ports/wasix/prepare-mapped-share.py STAGING SHARE`. Both steps are build-time; do not pass the plain staging directory to the mapped-file runner. Then:
 
 ```sh
 python3 ports/wasix/run-guest.py "$QEMU_BUILD/qemu-system-x86_64.wasm" "$PACK" "$SHARE" --verbose-kernel --timeout 300
 ```
 
-This gate is currently expected NOT to pass; see RESULTS.md. It kills the process group at its deadline and limits serial output, but does not impose a host RSS quota. Use an externally constrained development environment. Host volume mappings are writable: use only disposable dedicated directories, never a host root or shared user files. Kernel/BIOS licensing and QEMU/GLib/libffi source obligations still apply if redistributing artifacts.
+This gate passed locally; see RESULTS.md. It kills the process group after success or deadline and limits serial output and RSS (1.8 GiB). The measured pass used the same source changes and postprocessing; the packaged combined build-script replay is still pending. Use an externally constrained development environment. Host volume mappings are writable: use only disposable dedicated directories, never a host root or shared user files. Kernel/BIOS licensing and QEMU/GLib/libffi source obligations still apply if redistributing artifacts.
+
+The runtime patch is applied after the base patch. Binaryen wasm-dis/wasm-as from the pinned wasixcc installation are used for the bounded longjmp rewrite; override WASM_DIS/WASM_AS if needed. Do not enable all Wasm proposals blindly: compact imports are not supported by this Wasmer version. Plugins and non-TCI accelerators must stay disabled. The legacy CONFIG_WASIX_ASYNCIFY flag enables typed helpers only, not Asyncify.

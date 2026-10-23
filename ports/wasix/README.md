@@ -1,43 +1,37 @@
 # Experimental QEMU/WASIX port
 
-This is an in-progress local port, not an Edge-ready package. It retains QEMU and the Linux guest, producing WebAssembly rather than substituting a native VM or language-specific WASM interpreters.
+**Local Linux boot + Lua hello passed under Wasmer 7.5.0.** This is a draft experiment, not an Edge-ready service. It retains QEMU and Linux and produces WebAssembly, not a native VM or per-language interpreter.
 
-## Current evidence
+## Measured milestone
 
-- Wasmer 7.5.0 and wasixcc 0.4.7: C hello, pthread join, pipes, and WASIX execution contexts pass locally.
-- 768 MiB initial memory / 2 GiB maximum: boundary probes pass. This is not a measurement of QEMU guest memory or peak RSS.
-- Fresh-instance filesystem/global-state probes pass twice; external process-group cancellation and clean restart pass. This does not establish security isolation under hostile QEMU workloads.
-- Official WASIX libffi mixed-width ffi_call passes. WASIX static zlib, GLib, GObject, GThread and GModule compile. GIO is excluded.
-- QEMU cross-configuration succeeds with the TCG interpreter and candidate WASIX coroutine backend. Full compilation and linking succeeded; QEMU 8.2.0 prints its version under Wasmer. A clean build-script reproduction passed (1,512 build steps). The debugless module is 12,689,356 bytes (after the synchronous 9p adjustment).
-- WASIX host-to-Linux errno mapping and directory cookie seek/replay pass. Host statvfs returns ENOTSUP locally, which the guest must handle; no disk capacity is fabricated.
-- sigsetjmp fails in a standalone WASIX EH probe; setjmp and a longjmp across official libffi both pass. The four CPU/translator jump sites across three files that request no signal-mask saving use plain setjmp.
-- Linux boot, Lua inside Linux, migration restore, full guest cancellation/isolation, and Edge hosting have NOT passed yet.
+The 2026-10-23 cold guest run completed the init handshake and printed `LUA_HELLO_PASS` and `LUA_EXIT:0` in 63.519 seconds. Artifact: 12,630,670 bytes; peak host RSS: 860,888 KiB (~841 MiB); guest RAM: 512 MiB; TCI cache: 16 MiB. Wasm initial/max memory: 768 MiB/2 GiB. These are different measurements. The supervisor deliberately killed the process group after success, so cleanup returncode -9 is expected.
 
-The existing browser artifact is not used unchanged: its Emscripten JS translation-block compiler is replaced by QEMU TCI. This trades JIT performance for a runtime-independent interpreter. The candidate coroutine backend uses WASIX contexts and explicitly aborts if a coroutine crosses host threads, even in release builds. Coroutine pooling is disabled. 9p operations run synchronously on the owning thread rather than migrating WASIX contexts into the native worker pool. This can block QEMU I/O; the external supervisor is the cancellation boundary. Actual Linux 9p attach/read remains untested.
+Artifact SHA-256: `cf295debf9910fd74169b77bc8f1179613ed545786c1db806b3a7ef41e50ef6a`.
 
-## Known runtime limits and capability contract
+See BUILD.md for preparation and RESULTS.md for passes, failures and untested gates. No Edge deployment, snapshot/restore compatibility, hostile-workload isolation or production readiness is established.
 
-The original 2300 MiB initial shared-memory configuration reproduces a Wasmer WASIX thread-spawn overflow locally, although a plain Wasm module with that memory size starts. A 768 MiB starting allocation succeeds in probes; full QEMU must still validate its own budget. The guest remains configured for 512 MiB. Artifact size, linear-memory reservation and host RSS are distinct measurements.
+## Port design
 
-Host subprocess creation is not provided by the chosen WASIX exception-handling ABI. host-compat.h returns ENOSYS for GLib host fork paths; it never reports successful subprocess creation. Guest Linux fork is a different operation and is not stubbed by this shim. GIO, host debugger spawning, coroutine migration across host threads and browser snapshot interchange are unsupported pending tests.
+- QEMU TCI replaces the browser's Emscripten JavaScript translation-block JIT. Exact typed Wasm-local helper thunks replace host `call_dynamic` dispatch. The tested module has no `call_dynamic` import; libffi remains for argument-layout metadata.
+- WASIX execution contexts implement thread-affine coroutines; cross-thread entry aborts and coroutine pooling is disabled. 9p I/O is synchronous on the owning thread, not migrated into native workers. The supervisor is the cancellation boundary.
+- WASIX host errno values are mapped to Linux values, directory cookies are copied/replayed, and unsupported statvfs/xattr operations return errors rather than fabricated data.
+- Pinned WASIX stat drops POSIX mode bits. Build-time `prepare-mapped-share.py` converts the verified package directory into QEMU's mapped-file representation, preserving file type, executable bits and symlink targets independently of host stat. The guest runner selects `security_model=mapped-file`.
+- Pinned libc `sigwait` returns success with signal zero in the small probe. The WASIX target therefore omits the POSIX signal-to-fd bridge. TCI kicks use cpu_exit plus condition/event notifications. Native host signal delivery is not part of this contract; guest Linux signals remain emulated. Other accelerators are unsupported.
 
-The port needs threads, pipes/poll, clocks, entropy, files and WASIX context switching. Guest storage must be explicitly mounted per instance; do not grant host filesystem roots or networking by default. --offline only disables registry resolution, not networking; inherited runtime network permissions can still apply. Strict denial requires externally enforced network isolation. A supervisor must enforce deadlines and kill the entire instance process group. No Edge memory quota, host context support or deployment compatibility is asserted by these local probes.
+## Bounded exception workaround
 
-## Boundary probe
+Wasmer 7.5.0 retains exception objects. `cache-longjmp.py` rewrites the pinned compiler's single C-longjmp throw into a fixed 64-entry key/reference cache per Wasmer store. It fails closed on an unexpected tag/throw shape and exits 78 if 64 distinct payload addresses are exceeded. This is a bound over store lifetime, not merely live checkpoints. The cache never evicts or frees runtime objects.
 
-With official wasixcc and wasmer on PATH, run `python3 ports/wasix/test-capabilities.py`. The script emits JSON and asserts the expected results. This test does not boot QEMU. See BUILD.md for the build sequence and RESULTS.md for measured failures as well as passes.
+This preserves the pointer payload used by libc's live jmp_buf, but reuses exception identity and its first-allocation backtrace. It is specific to C longjmp, not general exception semantics. The supported embedding serializes each store; new pthread stores get fresh globals. **Wasmer store fork, snapshot, restore, transfer, concurrent shared-store embedding, and host-trap recovery/re-entry are unsupported.** QEMU guest migration is a separate, untested and deferred feature.
 
-## Host-memory limitations
+Typed-helper code currently uses the legacy internal flag `CONFIG_WASIX_ASYNCIFY`; it does **not** select Asyncify. Normal EH remains enabled. Plugins must remain disabled: their substituted callback pointer is incompatible with fixed-helper thunks. Browser patches and browser snapshots are not interchangeable with this target.
 
-The TCI bytecode buffer is RW data, not executable code. Anonymous guest RAM uses aligned, zeroed allocation inside Wasm linear memory. Shared host-process mappings and no-reserve RAM are rejected. WASIX cannot provide native PROT_NONE guard pages; the whole Wasm instance remains the isolation boundary, not individual allocations within it. The mprotect adapter returns success only for already-RW data, and ENOTSUP for other protection requests.
+## Capability and safety limits
 
-This experiment starts from the pinned qemu-wasm fork, not a native QEMU replacement. Browser-only Emscripten JIT/FS patches are not applied to the TCI/WASIX target. It uses the pinned TryNix kernel, initramfs and machine definition, reducing the TCG bytecode cache to 16 MiB. Existing browser migration snapshots are not assumed compatible.
+Required: shared memory/threads, pipes/poll, clocks, entropy, explicitly mounted files and WASIX context switching. Host subprocess creation is ENOSYS; guest Linux fork is separate. GIO, host debugger spawning, shared host-process RAM mappings and no-reserve RAM are unsupported. Guest RAM is aligned zeroed storage within Wasm memory; native PROT_NONE guard pages are unavailable. The whole Wasm instance, not individual allocations, is the isolation boundary.
 
-## Blocking result
+Use disposable dedicated PACK/SHARE directories only. Mounts are currently writable; immutable package mounts and writable overlays are not implemented. No host filesystem root or new network grant is requested. `--offline` disables registry resolution, **not networking**; cached runtime permissions can still apply. Enforce network denial externally where required. The runner enforces time/output/RSS limits and kills its process group, but is not a substitute for OS resource isolation.
 
-The module reaches SeaBIOS and Linux early decompression, but **does not yet boot Linux or run Lua**. Repeated setjmp/longjmp causes growing host RSS on tested Wasmer Cranelift and LLVM backends while Wasm linear-memory pages remain constant. A one-million-jump reproducer peaks near 494 MiB (Cranelift) or 525 MiB (LLVM). V8 stays near 82 MiB but rejects WASIX context creation and fails the required libffi/longjmp probe. It is not a working alternative for this port.
+The original 2300 MiB shared-memory pthread configuration failed locally; 768 MiB initial memory works in this experiment. No hosted Edge quota or context-support claim follows from local success. Cancellation, fresh-instance isolation and warm reuse of this final QEMU artifact still need their full matrix; earlier small capability probes are not equivalent.
 
-Wasmer 7.5.0 retains exception objects, payloads and backtraces in its store, with reference counting still marked TODO. This is consistent with an upstream-described EH memory leak, but we have not instrumented every byte of the QEMU run. No unsafe exception-object recycling or custom runtime patch is included. A production-quality path needs bounded runtime exception handling or a verified alternative control-flow design.
-
-The package closure can already be verified and unpacked at build time with prepare-lua.mjs (Node 24, curl, xz and bzip2 required). This produces a new host directory, not a disk image or RAM snapshot. The bounded local runner uses that prepopulated share without downloading packages at execution time. Read-only package mounts and a writable overlay remain unimplemented. A booted snapshot might bypass boot work but does not fix execution-time exception growth; migration compatibility remains untested and deferred.
-
+Packages are verified/unpacked at build time, not downloaded during execution. This share is not a disk image or RAM snapshot. Snapshot restoration remains deferred.

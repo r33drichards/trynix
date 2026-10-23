@@ -1,0 +1,277 @@
+--- /dev/null
++++ b/include/exec/helper-wasix.h
+@@ -0,0 +1,57 @@
++/* Experimental typed TCI dispatch: no host dynamic-call boundary. */
++#ifndef QEMU_HELPER_WASIX_H
++#define QEMU_HELPER_WASIX_H
++#include <string.h>
++#define WRET_i32(R, CALL) do { dh_ctype(R) value = (CALL); memcpy(result, &value, sizeof value); } while (0)
++#define WRET_i64(R, CALL) do { dh_ctype(R) value = (CALL); memcpy(result, &value, sizeof value); } while (0)
++#define WRET_i128(R, CALL) do { dh_ctype(R) value = (CALL); memcpy(result, &value, sizeof value); } while (0)
++#define WRET_ptr(R, CALL) do { dh_ctype(R) value = (CALL); memcpy(result, &value, sizeof value); } while (0)
++#define WRET_void(R, CALL) do { CALL; } while (0)
++#define WRET_noreturn(R, CALL) do { CALL; } while (0)
++#define WRET(R, CALL) glue(WRET_, dh_alias(R))(R, CALL)
++#define WASIX_THUNK_0(NAME, RET) static void glue(wasix_thunk_, NAME)(void *result, void **args) { \
++    WRET(RET, HELPER(NAME)()); }
++#define WASIX_THUNK_1(NAME, RET, T1) static void glue(wasix_thunk_, NAME)(void *result, void **args) { \
++    dh_ctype(T1) a0; memcpy(&a0, args[0], sizeof a0); \
++    WRET(RET, HELPER(NAME)(a0)); }
++#define WASIX_THUNK_2(NAME, RET, T1, T2) static void glue(wasix_thunk_, NAME)(void *result, void **args) { \
++    dh_ctype(T1) a0; memcpy(&a0, args[0], sizeof a0); \
++    dh_ctype(T2) a1; memcpy(&a1, args[1], sizeof a1); \
++    WRET(RET, HELPER(NAME)(a0, a1)); }
++#define WASIX_THUNK_3(NAME, RET, T1, T2, T3) static void glue(wasix_thunk_, NAME)(void *result, void **args) { \
++    dh_ctype(T1) a0; memcpy(&a0, args[0], sizeof a0); \
++    dh_ctype(T2) a1; memcpy(&a1, args[1], sizeof a1); \
++    dh_ctype(T3) a2; memcpy(&a2, args[2], sizeof a2); \
++    WRET(RET, HELPER(NAME)(a0, a1, a2)); }
++#define WASIX_THUNK_4(NAME, RET, T1, T2, T3, T4) static void glue(wasix_thunk_, NAME)(void *result, void **args) { \
++    dh_ctype(T1) a0; memcpy(&a0, args[0], sizeof a0); \
++    dh_ctype(T2) a1; memcpy(&a1, args[1], sizeof a1); \
++    dh_ctype(T3) a2; memcpy(&a2, args[2], sizeof a2); \
++    dh_ctype(T4) a3; memcpy(&a3, args[3], sizeof a3); \
++    WRET(RET, HELPER(NAME)(a0, a1, a2, a3)); }
++#define WASIX_THUNK_5(NAME, RET, T1, T2, T3, T4, T5) static void glue(wasix_thunk_, NAME)(void *result, void **args) { \
++    dh_ctype(T1) a0; memcpy(&a0, args[0], sizeof a0); \
++    dh_ctype(T2) a1; memcpy(&a1, args[1], sizeof a1); \
++    dh_ctype(T3) a2; memcpy(&a2, args[2], sizeof a2); \
++    dh_ctype(T4) a3; memcpy(&a3, args[3], sizeof a3); \
++    dh_ctype(T5) a4; memcpy(&a4, args[4], sizeof a4); \
++    WRET(RET, HELPER(NAME)(a0, a1, a2, a3, a4)); }
++#define WASIX_THUNK_6(NAME, RET, T1, T2, T3, T4, T5, T6) static void glue(wasix_thunk_, NAME)(void *result, void **args) { \
++    dh_ctype(T1) a0; memcpy(&a0, args[0], sizeof a0); \
++    dh_ctype(T2) a1; memcpy(&a1, args[1], sizeof a1); \
++    dh_ctype(T3) a2; memcpy(&a2, args[2], sizeof a2); \
++    dh_ctype(T4) a3; memcpy(&a3, args[3], sizeof a3); \
++    dh_ctype(T5) a4; memcpy(&a4, args[4], sizeof a4); \
++    dh_ctype(T6) a5; memcpy(&a5, args[5], sizeof a5); \
++    WRET(RET, HELPER(NAME)(a0, a1, a2, a3, a4, a5)); }
++#define WASIX_THUNK_7(NAME, RET, T1, T2, T3, T4, T5, T6, T7) static void glue(wasix_thunk_, NAME)(void *result, void **args) { \
++    dh_ctype(T1) a0; memcpy(&a0, args[0], sizeof a0); \
++    dh_ctype(T2) a1; memcpy(&a1, args[1], sizeof a1); \
++    dh_ctype(T3) a2; memcpy(&a2, args[2], sizeof a2); \
++    dh_ctype(T4) a3; memcpy(&a3, args[3], sizeof a3); \
++    dh_ctype(T5) a4; memcpy(&a4, args[4], sizeof a4); \
++    dh_ctype(T6) a5; memcpy(&a5, args[5], sizeof a5); \
++    dh_ctype(T7) a6; memcpy(&a6, args[6], sizeof a6); \
++    WRET(RET, HELPER(NAME)(a0, a1, a2, a3, a4, a5, a6)); }
++#define WASIX_THUNK_FIELD(NAME) .wasix_thunk = glue(wasix_thunk_, NAME),
++#endif
+--- a/include/exec/helper-info.c.inc
++++ b/include/exec/helper-info.c.inc
+@@ -9,6 +9,20 @@
+ #include "tcg/helper-info.h"
+ #include "exec/helper-head.h"
+ 
++#ifdef CONFIG_WASIX_ASYNCIFY
++#include "exec/helper-wasix.h"
++#else
++#define WASIX_THUNK_0(...)
++#define WASIX_THUNK_1(...)
++#define WASIX_THUNK_2(...)
++#define WASIX_THUNK_3(...)
++#define WASIX_THUNK_4(...)
++#define WASIX_THUNK_5(...)
++#define WASIX_THUNK_6(...)
++#define WASIX_THUNK_7(...)
++#define WASIX_THUNK_FIELD(NAME)
++#endif
++
+ /*
+  * Need one more level of indirection before stringification
+  * to get all the macros expanded first.
+@@ -16,38 +30,43 @@
+ #define str(s) #s
+ 
+ #define DEF_HELPER_FLAGS_0(NAME, FLAGS, RET)                            \
++    WASIX_THUNK_0(NAME, RET) \
+     TCGHelperInfo glue(helper_info_, NAME) = {                          \
+-        .func = HELPER(NAME), .name = str(NAME),                        \
++        .func = HELPER(NAME), .name = str(NAME), WASIX_THUNK_FIELD(NAME)                        \
+         .flags = FLAGS | dh_callflag(RET),                              \
+         .typemask = dh_typemask(RET, 0)                                 \
+     };
+ 
+ #define DEF_HELPER_FLAGS_1(NAME, FLAGS, RET, T1)                        \
++    WASIX_THUNK_1(NAME, RET, T1) \
+     TCGHelperInfo glue(helper_info_, NAME) = {                          \
+-        .func = HELPER(NAME), .name = str(NAME),                        \
++        .func = HELPER(NAME), .name = str(NAME), WASIX_THUNK_FIELD(NAME)                        \
+         .flags = FLAGS | dh_callflag(RET),                              \
+         .typemask = dh_typemask(RET, 0) | dh_typemask(T1, 1)            \
+     };
+ 
+ #define DEF_HELPER_FLAGS_2(NAME, FLAGS, RET, T1, T2)                    \
++    WASIX_THUNK_2(NAME, RET, T1, T2) \
+     TCGHelperInfo glue(helper_info_, NAME) = {                          \
+-        .func = HELPER(NAME), .name = str(NAME),                        \
++        .func = HELPER(NAME), .name = str(NAME), WASIX_THUNK_FIELD(NAME)                        \
+         .flags = FLAGS | dh_callflag(RET),                              \
+         .typemask = dh_typemask(RET, 0) | dh_typemask(T1, 1)            \
+                   | dh_typemask(T2, 2)                                  \
+     };
+ 
+ #define DEF_HELPER_FLAGS_3(NAME, FLAGS, RET, T1, T2, T3)                \
++    WASIX_THUNK_3(NAME, RET, T1, T2, T3) \
+     TCGHelperInfo glue(helper_info_, NAME) = {                          \
+-        .func = HELPER(NAME), .name = str(NAME),                        \
++        .func = HELPER(NAME), .name = str(NAME), WASIX_THUNK_FIELD(NAME)                        \
+         .flags = FLAGS | dh_callflag(RET),                              \
+         .typemask = dh_typemask(RET, 0) | dh_typemask(T1, 1)            \
+                   | dh_typemask(T2, 2) | dh_typemask(T3, 3)             \
+     };
+ 
+ #define DEF_HELPER_FLAGS_4(NAME, FLAGS, RET, T1, T2, T3, T4)            \
++    WASIX_THUNK_4(NAME, RET, T1, T2, T3, T4) \
+     TCGHelperInfo glue(helper_info_, NAME) = {                          \
+-        .func = HELPER(NAME), .name = str(NAME),                        \
++        .func = HELPER(NAME), .name = str(NAME), WASIX_THUNK_FIELD(NAME)                        \
+         .flags = FLAGS | dh_callflag(RET),                              \
+         .typemask = dh_typemask(RET, 0) | dh_typemask(T1, 1)            \
+                   | dh_typemask(T2, 2) | dh_typemask(T3, 3)             \
+@@ -55,8 +74,9 @@
+     };
+ 
+ #define DEF_HELPER_FLAGS_5(NAME, FLAGS, RET, T1, T2, T3, T4, T5)        \
++    WASIX_THUNK_5(NAME, RET, T1, T2, T3, T4, T5) \
+     TCGHelperInfo glue(helper_info_, NAME) = {                          \
+-        .func = HELPER(NAME), .name = str(NAME),                        \
++        .func = HELPER(NAME), .name = str(NAME), WASIX_THUNK_FIELD(NAME)                        \
+         .flags = FLAGS | dh_callflag(RET),                              \
+         .typemask = dh_typemask(RET, 0) | dh_typemask(T1, 1)            \
+                   | dh_typemask(T2, 2) | dh_typemask(T3, 3)             \
+@@ -64,8 +84,9 @@
+     };
+ 
+ #define DEF_HELPER_FLAGS_6(NAME, FLAGS, RET, T1, T2, T3, T4, T5, T6)    \
++    WASIX_THUNK_6(NAME, RET, T1, T2, T3, T4, T5, T6) \
+     TCGHelperInfo glue(helper_info_, NAME) = {                          \
+-        .func = HELPER(NAME), .name = str(NAME),                        \
++        .func = HELPER(NAME), .name = str(NAME), WASIX_THUNK_FIELD(NAME)                        \
+         .flags = FLAGS | dh_callflag(RET),                              \
+         .typemask = dh_typemask(RET, 0) | dh_typemask(T1, 1)            \
+                   | dh_typemask(T2, 2) | dh_typemask(T3, 3)             \
+@@ -74,8 +95,9 @@
+     };
+ 
+ #define DEF_HELPER_FLAGS_7(NAME, FLAGS, RET, T1, T2, T3, T4, T5, T6, T7) \
++    WASIX_THUNK_7(NAME, RET, T1, T2, T3, T4, T5, T6, T7) \
+     TCGHelperInfo glue(helper_info_, NAME) = {                          \
+-        .func = HELPER(NAME), .name = str(NAME),                        \
++        .func = HELPER(NAME), .name = str(NAME), WASIX_THUNK_FIELD(NAME)                        \
+         .flags = FLAGS | dh_callflag(RET),                              \
+         .typemask = dh_typemask(RET, 0) | dh_typemask(T1, 1)            \
+                   | dh_typemask(T2, 2) | dh_typemask(T3, 3)             \
+--- a/include/tcg/helper-info.h
++++ b/include/tcg/helper-info.h
+@@ -42,6 +42,9 @@
+ 
+ struct TCGHelperInfo {
+     void *func;
++#ifdef CONFIG_WASIX_ASYNCIFY
++    void (*wasix_thunk)(void *, void **);
++#endif
+     const char *name;
+ 
+     /* Used with g_once_init_enter. */
+--- a/tcg/tci/tcg-target.c.inc
++++ b/tcg/tci/tcg-target.c.inc
+@@ -659,7 +659,13 @@
+                          cif->rtype->size == 16);
+         which = ctz32(cif->rtype->size) - 1;
+     }
++#ifdef CONFIG_WASIX_ASYNCIFY
++    g_assert(info->wasix_thunk != NULL);
++    g_assert((const void *)func == info->func);
++    new_pool_l2(s, 20, s->code_ptr, 0, (uintptr_t)info->wasix_thunk, (uintptr_t)cif);
++#else
+     new_pool_l2(s, 20, s->code_ptr, 0, (uintptr_t)func, (uintptr_t)cif);
++#endif
+     insn = deposit32(insn, 0, 8, INDEX_op_call);
+     insn = deposit32(insn, 8, 4, which);
+     tcg_out32(s, insn);
+--- a/tcg/tci.c
++++ b/tcg/tci.c
+@@ -394,7 +394,11 @@
+ 
+                 /* Helper functions may need to access the "return address" */
+                 tci_tb_ptr = (uintptr_t)tb_ptr;
++#ifdef CONFIG_WASIX_ASYNCIFY
++                ((void (*)(void *, void **))func)(stack, call_slots);
++#else
+                 ffi_call(cif, func, stack, call_slots);
++#endif
+             }
+ 
+             switch (len) {
+--- a/accel/tcg/tcg-runtime.h
++++ b/accel/tcg/tcg-runtime.h
+@@ -35,7 +35,11 @@
+  * we assume sizeof(void *) == sizeof(size_t), which is true for
+  * all supported hosts.
+  */
++#ifdef CONFIG_WASIX_ASYNCIFY
++#define helper_memset wasix_helper_memset
++#else
+ #define helper_memset memset
++#endif
+ DEF_HELPER_FLAGS_3(memset, TCG_CALL_NO_RWG, ptr, ptr, int, ptr)
+ #endif /* IN_HELPER_PROTO */
+ 
+--- a/accel/tcg/tcg-runtime.c
++++ b/accel/tcg/tcg-runtime.c
+@@ -32,6 +32,12 @@
+ #include "tcg/tcg.h"
+ 
+ #define HELPER_H  "accel/tcg/tcg-runtime.h"
++#ifdef CONFIG_WASIX_ASYNCIFY
++static void *wasix_helper_memset(void *dest, int c, void *len)
++{
++    return memset(dest, c, (uintptr_t)len);
++}
++#endif
+ #include "exec/helper-info.c.inc"
+ #undef  HELPER_H
+ 
+--- a/util/main-loop.c
++++ b/util/main-loop.c
+@@ -39,7 +39,7 @@
+ #include <sys/wait.h>
+ #endif
+ 
+-#ifndef _WIN32
++#if !defined(_WIN32) && !defined(__wasi__)
+ 
+ /* If we have signalfd, we mask out the signals we want to handle and then
+  * use signalfd to listen for them.  We rely on whatever the current signal
+@@ -120,8 +120,14 @@
+     return 0;
+ }
+ 
+-#else /* _WIN32 */
+-
++#else /* _WIN32 || __wasi__ */
++
++/* WASIX host contract: no POSIX signal-to-fd bridge. The pinned libc
++ * sigwait returns success with signal zero rather than waiting. TCI kicks
++ * use cpu_exit plus condition/event notifications, not this bridge.
++ * Host cancellation belongs to the supervising process; guest Linux signals
++ * remain emulated normally. Do not enable accelerators needing host signals.
++ */
+ static int qemu_signal_init(Error **errp)
+ {
+     return 0;
+--- a/hw/9pfs/9p-local.c
++++ b/hw/9pfs/9p-local.c
+@@ -1522,8 +1522,8 @@
+     }
+ 
+ #ifdef __wasi__
+-    if (strcmp(sec_model, "none")) {
+-        error_setg(errp, "WASIX local 9p currently requires security_model=none");
++    if (strcmp(sec_model, "none") && strcmp(sec_model, "mapped-file")) {
++        error_setg(errp, "WASIX local 9p supports security_model=none or mapped-file");
+         return -1;
+     }
+ #endif

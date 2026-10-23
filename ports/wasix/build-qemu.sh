@@ -20,7 +20,16 @@ cd "$BUILD"
  --disable-sdl --disable-vnc --disable-opengl --disable-virglrenderer \
  --disable-pixman --disable-capstone --enable-fdt=internal --disable-download \
  --disable-tpm --disable-colo-proxy --disable-replication \
- --extra-cflags='-O2 -pthread' \
+ --extra-cflags='-O2 -pthread -DCONFIG_WASIX_ASYNCIFY' \
  --extra-ldflags='-pthread -Wl,--initial-memory=805306368 -Wl,--max-memory=2147483648'
 ninja -j"${JOBS:-4}" qemu-system-x86_64
-python3 "$PORT/strip-debug.py" qemu-system-x86_64 qemu-system-x86_64.wasm
+# Legacy feature name selects typed helper thunks, NOT Asyncify. Normal EH stays enabled.
+python3 "$PORT/strip-debug.py" qemu-system-x86_64 qemu-system-x86_64.uncached.wasm
+WASM_DIS=${WASM_DIS:-$HOME/.wasixcc/binaryen/bin/wasm-dis}
+WASM_AS=${WASM_AS:-$HOME/.wasixcc/binaryen/bin/wasm-as}
+"$WASM_DIS" qemu-system-x86_64.uncached.wasm -o qemu-system-x86_64.wat
+python3 "$PORT/cache-longjmp.py" qemu-system-x86_64.wat qemu-system-x86_64.cached.wat
+"$WASM_AS" qemu-system-x86_64.cached.wat -o qemu-system-x86_64.wasm \
+ --enable-exception-handling --enable-reference-types --enable-bulk-memory \
+ --enable-simd --enable-relaxed-simd --enable-extended-const --enable-threads \
+ --enable-mutable-globals --enable-sign-ext --enable-nontrapping-float-to-int --enable-multivalue
