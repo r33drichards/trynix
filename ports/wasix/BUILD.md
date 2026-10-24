@@ -20,7 +20,9 @@ Set PORT to the absolute path of ports/wasix. On clean extracted sources:
 (cd "$GLIB_SOURCE" && patch -p1 < "$PORT/glib-minimal.patch")
 (cd "$QEMU_SOURCE" && patch -p1 < "$PORT/qemu-wasix.patch")
 (cd "$QEMU_SOURCE" && patch -p1 < "$PORT/qemu-wasix-runtime.patch")
+(cd "$QEMU_SOURCE" && patch -p1 < "$PORT/qemu-wasix-coroutine-stack.patch")
 cp "$PORT/coroutine-wasix.c" "$QEMU_SOURCE/util/coroutine-wasix.c"
+cp "$PORT/coroutine-wasix-switch.S" "$QEMU_SOURCE/util/coroutine-wasix-switch.S"
 cp "$PORT/9p-errno-wasix.inc" "$QEMU_SOURCE/hw/9pfs/9p-errno-wasix.inc"
 bash "$PORT/build-deps.sh" "$LIBFFI_SOURCE" "$ZLIB_SOURCE" "$GLIB_SOURCE" "$DEPS_PREFIX" "$DEPS_BUILD"
 bash "$PORT/build-qemu.sh" "$QEMU_SOURCE" "$DEPS_PREFIX" "$QEMU_BUILD"
@@ -29,7 +31,7 @@ wasmer run --offline "$QEMU_BUILD/qemu-system-x86_64.wasm" -- --version
 
 The dependency script passed an end-to-end replay on pristine pinned dependency sources. The QEMU script also passed a fresh build using the initial static dependencies. Meson may fetch its pinned PCRE2 10.40 fallback while building GLib. No downloaded binaries are committed here.
 
-For probes: python3 ports/wasix/test-capabilities.py. For cold boot, fetch machine.json, bzImage, initramfs.cpio.gz and the four BIOS blobs listed in pins.json from https://trynix.dev/guest/, verify every hash, and put them in PACK. Prepare a new isolated staging directory with `node ports/wasix/prepare-lua.mjs STAGING`, then convert it with `python3 ports/wasix/prepare-mapped-share.py STAGING SHARE`. Both steps are build-time; do not pass the plain staging directory to the mapped-file runner. Then:
+For probes: python3 ports/wasix/test-capabilities.py. Coroutine C-stack isolation gate: `bash ports/wasix/test-coroutine-stack.sh 512` builds the backend plus its stack-switch shim and fails with an out-of-bounds trap if coroutines share one guest C stack. For cold boot, fetch machine.json, bzImage, initramfs.cpio.gz and the four BIOS blobs listed in pins.json from https://trynix.dev/guest/, verify every hash, and put them in PACK. Prepare a new isolated staging directory with `node ports/wasix/prepare-lua.mjs STAGING`, then convert it with `python3 ports/wasix/prepare-mapped-share.py STAGING SHARE`. Both steps are build-time; do not pass the plain staging directory to the mapped-file runner. Then:
 
 ```sh
 python3 ports/wasix/run-guest.py "$QEMU_BUILD/qemu-system-x86_64.wasm" "$PACK" "$SHARE" --verbose-kernel --timeout 300
