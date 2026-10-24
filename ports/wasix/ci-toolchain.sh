@@ -13,6 +13,7 @@ mkdir -p "$TOOLS/bin" "$TOOLS/dl"
 : > "$TOOLS/provenance.txt"
 fetch(){ local url=$1 name=$2
   if [ -s "$TOOLS/dl/$name" ]; then echo "cached $name"; return 0; fi
+  echo "fetching $name"
   if ! curl -fsSL --retry 3 --proto '=https' -o "$TOOLS/dl/$name" "$url"; then
     echo "DOWNLOAD FAILED url=$url"; exit 1
   fi
@@ -24,23 +25,27 @@ fetch https://github.com/WebAssembly/binaryen/releases/download/version_133/bina
 tar xzf "$TOOLS/dl/llvm.tar.gz" -C "$TOOLS"
 tar xzf "$TOOLS/dl/sysroot.tar.gz" -C "$TOOLS"
 tar xzf "$TOOLS/dl/binaryen.tar.gz" -C "$TOOLS"
-find_one(){ # find_one <name> <predicate...> ; empty result is a hard, loud error
-  local label=$1; shift; local hit
-  hit=$(find "$TOOLS" "$@" -print -quit 2>/dev/null || true)
-  if [ -z "$hit" ]; then echo "NOT FOUND: $label"; find "$TOOLS" -maxdepth 3 | head -40; exit 1; fi
-  echo "$label=$hit"
-  printf '%s' "$hit"
+locate(){ # locate <label> <find-args...> ; sets global FOUND, prints to stdout
+  local label=$1; shift
+  mapfile -t HITS < <(find "$TOOLS" "$@" 2>/dev/null | head -1)
+  if [ "${#HITS[@]}" -eq 0 ]; then
+    echo "NOT FOUND: $label"; echo "--- tree under $TOOLS (maxdepth 3) ---"; find "$TOOLS" -maxdepth 3 | head -40; exit 1
+  fi
+  FOUND="${HITS[0]}"; echo "found $label=$FOUND"
 }
-CLANG=$(find_one clang -type f -name clang)
-WASMER=$(find_one wasmer -type f -name wasmer)
-WASMDIS=$(find_one wasm-dis -type f -name wasm-dis)
-CRT1=$(find_one crt1-command.o -type f -name 'crt1-command.o')
-BUILTINS=$(find_one compiler-rt -type f -name 'libclang_rt.builtins-wasm32.a')
+echo "== locating toolchain pieces under $TOOLS =="
+locate clang -type f -name clang;            CLANG="$FOUND"
+locate wasmer -type f -name wasmer;          WASMER="$FOUND"
+locate wasm-dis -type f -name wasm-dis;      WASMDIS="$FOUND"
+locate crt1-command.o -type f -name 'crt1-command.o'; CRT1="$FOUND"
+locate compiler-rt -type f -name 'libclang_rt.builtins-wasm32.a'; BUILTINS="$FOUND"
 LLVM=$(dirname "$CLANG"); BINEN=$(dirname "$WASMDIS")
 SYSROOT=$(dirname "$(dirname "$CRT1")")
-RES=$(dirname "$(dirname "$(dirname "$LLVM")")")/lib/clang
-RES=$(find "$RES" -maxdepth 2 -type d -name lib | head -1 || true)
-[ -n "$RES" ] || { echo "clang resource lib dir not found under $(dirname "$LLVM")/../lib/clang"; exit 1; }
+RESROOT=$(dirname "$(dirname "$LLVM")")/lib/clang
+echo "== clang resource dir: $RESROOT ==
+mapfile -t RESS < <(find "$RESROOT" -maxdepth 2 -type d -name lib | head -1)
+if [ "${#RESS[@]}" -eq 0 ]; then echo "resource lib dir missing"; ls -l "$RESROOT" 2>&1 | head -10; exit 1; fi
+RES="${RESS[0]}"
 # The release tarball ships no wasm compiler-rt in clang's resource dir; the sysroot
 # does. Link it where clang looks so plain "wasixcc x.c -o x.wasm" behaves.
 for t in wasm32-unknown-wasixp1 wasm32-unknown-wasi-preview1-threads wasm32-unknown-wasi; do
