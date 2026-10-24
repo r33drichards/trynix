@@ -35,7 +35,8 @@ locate(){ # locate <label> <find-args...> ; sets global FOUND, prints to stdout
   FOUND="${HITS[0]}"; echo "found $label=$FOUND"
 }
 df -h "$TOOLS" | tail -1 | sed "s#^#disk: #"
-if tar tzf "$TOOLS/dl/llvm.tar.gz" >/dev/null 2>&1; then tar tzf "$TOOLS/dl/llvm.tar.gz" | head -5 | sed "s#^#llvm-entry: #"; else echo "llvm.tar.gz is not a valid gzip archive"; head -c 160 "$TOOLS/dl/llvm.tar.gz" | cat -v; echo; fi
+tar tzf "$TOOLS/dl/llvm.tar.gz" > "$TOOLS/llvm-list.txt" 2> "$TOOLS/llvm-err.txt" || echo "llvm.tar.gz listing failed: $(head -c 160 "$TOOLS/llvm-err.txt")"
+head -5 "$TOOLS/llvm-list.txt" | sed "s#^#llvm-entry: #"
 echo "== locating toolchain pieces under $TOOLS =="
 locate clang -type f -name clang;            CLANG="$FOUND"
 locate wasmer -type f -name wasmer;          WASMER="$FOUND"
