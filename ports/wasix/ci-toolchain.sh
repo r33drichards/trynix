@@ -11,14 +11,13 @@ PORT=$(cd "$(dirname "$0")" && pwd)
 TOOLS=${TOOLS:-${RUNNER_TEMP:-/tmp/wasix-tools}/tools}
 mkdir -p "$TOOLS/bin" "$TOOLS/dl"
 : > "$TOOLS/provenance.txt"
-fetch(){ local url=$1 name=$2
-  if [ -s "$TOOLS/dl/$name" ]; then echo "cached $name"; return 0; fi
-  echo "fetching $name"
-  if ! curl -fsSL --retry 3 --proto '=https' -o "$TOOLS/dl/$name" "$url"; then
-    echo "DOWNLOAD FAILED url=$url"; exit 1
+fetch(){ local url=$1 name=$2 stats
+  if [ -s "$TOOLS/dl/$name" ]; then echo "cached $name bytes=$(wc -c < "$TOOLS/dl/$name")"; return 0; fi
+  if ! stats=$(curl -fsSL --retry 3 -o "$TOOLS/dl/$name" -w '%{http_code} %{size_download} %{url_effective}' "$url"); then
+    echo "DOWNLOAD FAILED name=$name url=$url code=${stats:-curl-nonzero} bytes=$(wc -c < "$TOOLS/dl/$name" 2>/dev/null || echo 0)"
+    exit 1
   fi
-  ls -l "$TOOLS/dl/$name" | tail -1 | sed "s#^#size: "#" >> "$TOOLS/provenance.txt"
-  file "$TOOLS/dl/$name" 2>/dev/null | sed "s#^#type: "#" >> "$TOOLS/provenance.txt"
+  echo "fetched $name stats=$stats on_disk=$(wc -c < "$TOOLS/dl/$name")"
   echo "$name sha256=$(sha256sum "$TOOLS/dl/$name" | cut -d' ' -f1)" >> "$TOOLS/provenance.txt"
 }
 fetch https://github.com/wasix-org/llvm-project/releases/download/21.1.206/LLVM-Linux-x86_64.tar.gz llvm.tar.gz
@@ -36,7 +35,7 @@ locate(){ # locate <label> <find-args...> ; sets global FOUND, prints to stdout
   FOUND="${HITS[0]}"; echo "found $label=$FOUND"
 }
 df -h "$TOOLS" | tail -1 | sed "s#^#disk: #"
-tar tzf "$TOOLS/dl/llvm.tar.gz" 2>/dev/null | head -5 | sed "s#^#llvm-entry: #"
+if tar tzf "$TOOLS/dl/llvm.tar.gz" >/dev/null 2>&1; then tar tzf "$TOOLS/dl/llvm.tar.gz" | head -5 | sed "s#^#llvm-entry: #"; else echo "llvm.tar.gz is not a valid gzip archive"; head -c 160 "$TOOLS/dl/llvm.tar.gz" | cat -v; echo; fi
 echo "== locating toolchain pieces under $TOOLS =="
 locate clang -type f -name clang;            CLANG="$FOUND"
 locate wasmer -type f -name wasmer;          WASMER="$FOUND"
