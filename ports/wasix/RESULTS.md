@@ -74,3 +74,21 @@ wasixcc -O2 ports/wasix/test-jump-stress.c -o jump.wasm
 ```
 
 Do not run this without an external memory/time limit in a constrained shared environment. No production runtime patch, unsafe exception recycling, full guest isolation proof, migration restore, browser-snapshot interchange or Edge compatibility is included. A RAM snapshot could skip decompression but would not bound subsequent exception growth.
+
+
+## Coroutine C-stack isolation gate (2026-10-24, local Wasmer 7.5.0)
+
+`ports/wasix/coroutine-wasix.c` gave every coroutine the shared module-level guest C stack: WASIX switches the engine call stack only, while `__stack_pointer` is per-store. N concurrently suspended coroutines therefore consume one stack region. `test-coroutine-stack.c` drives N coroutines through the real backend (16 KiB address-taken frame + 256-byte guard each, all suspended before any resume).
+
+| N | backend before | backend with per-coroutine stack + `coroutine-wasix-switch.S` |
+|---|---|---|
+| 8 | ok, used span 132,864 B | ok, 0 bad guard bytes |
+| 64 | ok, span 1,064,704 B | ok, 0 bad guard bytes |
+| 256 | ok, span 4,259,584 B | ok, 0 bad guard bytes |
+| 512 | traps: `RuntimeError: out of bounds memory access` at `worker_entry`/`coroutine_trampoline` | ok, 0 bad guard bytes |
+| 700 | traps | ok, 0 bad guard bytes |
+| 1500 | - | ok, 0 bad guard bytes |
+
+The shim saves the caller `__stack_pointer`, installs the target's saved pointer, performs `wasix_context_switch`, and restores on resume; it is frameless and touches no C locals, which is safe in Wasm because return addresses live in the engine call stack rather than linear memory. Each coroutine owns a bounded 256 KiB region (`COROUTINE_WASIX_STACK_SIZE`).
+
+Not established here: byte-level clobbering of a suspended coroutine's frames did not reproduce in two-context probes on this toolchain (0 mismatches every run); no full QEMU build was run, so the `util/meson.build` wiring for the `.S` is unverified; and with `--disable-coroutine-pool` create/delete now costs a 256 KiB allocation per coroutine. Linux boot, snapshot/restore, lifecycle, isolation and Edge remain untested by this gate. Machine-readable results: `evidence/coroutine-stack.json`.

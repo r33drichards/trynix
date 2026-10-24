@@ -1,0 +1,85 @@
+{
+  "scope": "Local reproduction and verification of the WASIX coroutine C-stack defect on PR #2 branch content. Not a Linux boot, snapshot/restore or Edge test.",
+  "toolchain": {
+    "wasmer": "7.5.0 (bin/wasmer from wasix-org llvm-project 21.1.206 release, run via nix glibc loader)",
+    "clang": "WASIX clang 21.1.2 (wasix-org/llvm-project 21.1.206)",
+    "sysroot": "wasix-org/wasix-libc v2026-10-02.1 sysroot-exnref-eh (= commit 2025b44a5d2eb22b64ecdbf1bb16f3e7699dfb60)",
+    "link": "wasm-ld -m wasm32 --import-memory --export-table --shared-memory -z stack-size=5242880 --initial-memory=67108864 --max-memory=2147483648",
+    "note": "Toolchain installed locally for this repro; binaries are upstream release artifacts, not built from source here."
+  },
+  "defect": "WASIX contexts do not receive separate linear-memory C stacks: N concurrently suspended coroutines consume one shared guest stack until it leaves the -z stack-size region (no native guard pages on this target).",
+  "not_reproduced": "Byte-level clobbering of a suspended context’s stack data (the gist’s 255/256 observation) did not reproduce with a 2-context A→B→A probe on this exact toolchain; guards stayed intact in every run.",
+  "tests": {
+    "coroutine_stack_test": "ports/wasix/test-coroutine-stack.c driven through ports/wasix/coroutine-wasix.c with QEMU enter/yield/terminate protocol; 16 KiB address-taken frame + 256-byte guard per coroutine; all coroutines suspended before any resume",
+    "results_before": [
+      {
+        "n": 8,
+        "checked": 8,
+        "bad_guard_bytes": 0,
+        "stack_span_bytes": 132864
+      },
+      {
+        "n": 64,
+        "checked": 64,
+        "bad_guard_bytes": 0,
+        "stack_span_bytes": 1064704
+      },
+      {
+        "n": 256,
+        "checked": 256,
+        "bad_guard_bytes": 0,
+        "stack_span_bytes": 4259584
+      },
+      {
+        "n": 512,
+        "outcome": "TRAP RuntimeError: out of bounds memory access at worker_entry / coroutine_trampoline"
+      },
+      {
+        "n": 700,
+        "outcome": "TRAP RuntimeError: out of bounds memory access"
+      }
+    ],
+    "results_after": [
+      {
+        "n": 8,
+        "checked": 8,
+        "bad_guard_bytes": 0
+      },
+      {
+        "n": 64,
+        "checked": 64,
+        "bad_guard_bytes": 0
+      },
+      {
+        "n": 256,
+        "checked": 256,
+        "bad_guard_bytes": 0
+      },
+      {
+        "n": 512,
+        "checked": 512,
+        "bad_guard_bytes": 0
+      },
+      {
+        "n": 700,
+        "checked": 700,
+        "bad_guard_bytes": 0
+      },
+      {
+        "n": 1500,
+        "checked": 1500,
+        "bad_guard_bytes": 0
+      }
+    ],
+    "shim_validation": "sp-shim-test.c: callee frame landed inside the supplied 64 KiB region (in_region:1), caller SP restored (0x501e9c before/after), indirect call returned 42"
+  },
+  "capability_gate": {
+    "command": "clang --target=wasm32-wasixp1 (21.1.2) + sysroot v2026-10-02.1, wasmer run ports/wasix/capabilities.c build",
+    "output": "fresh-instance PASS, pthread PASS, pipe PASS, context PASS, memory_pages 1105, exit 0 on two instances; loop mode killed by 3 s supervisor deadline (rc 124)"
+  },
+  "caveats": [
+    "No full QEMU build was run in this environment, so the util/meson.build wiring for the .S is unverified.",
+    "Aggregate cgroup memory is 3 GiB on the test host; the guard is session-wide, not engine-isolated."
+  ],
+  "recorded_at": "2026-10-24T22:24:51.147Z"
+}
