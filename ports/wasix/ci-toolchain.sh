@@ -21,15 +21,18 @@ fetch https://github.com/WebAssembly/binaryen/releases/download/version_133/bina
 tar xzf "$TOOLS/dl/llvm.tar.gz" -C "$TOOLS"
 tar xzf "$TOOLS/dl/sysroot.tar.gz" -C "$TOOLS"
 tar xzf "$TOOLS/dl/binaryen.tar.gz" -C "$TOOLS"
-LLVM=$(find "$TOOLS" -maxdepth 3 -type d -name bin | grep -F llvm | head -1)
-SYSROOT=$(find "$TOOLS" -maxdepth 5 -type d -path '*sysroot*/sysroot' | head -1)
-BINEN=$(find "$TOOLS" -maxdepth 3 -type d -name bin | grep -F binaryen | head -1)
+set +o pipefail
+LLVM=$(find "$TOOLS" -maxdepth 3 -type d -name bin | grep -F llvm | head -1 || true)
+SYSROOT=$(find "$TOOLS" -maxdepth 5 -type d -path '*sysroot*/sysroot' | head -1 || true)
+BINEN=$(find "$TOOLS" -maxdepth 3 -type d -name bin | grep -F binaryen | head -1 || true)
+RES=$(find "$TOOLS" -maxdepth 4 -type d -path '*lib/clang/*' | head -1 || true)
+BUILTINS=$(find "$SYSROOT" -name 'libclang_rt.builtins-wasm32.a' | head -1 || true)
+WASM_BIN=$(find "$TOOLS" -maxdepth 4 -type f -name wasmer | head -1 || true)
+set -o pipefail
 test -n "$LLVM"; test -n "$SYSROOT"
 # The release tarball ships no wasm compiler-rt in clang's resource dir, but the
 # sysroot provides libclang_rt.builtins-wasm32.a. Link it where clang looks so
 # plain "wasixcc file.c -o out.wasm" works like the official wrapper.
-RES=$(find "$TOOLS" -maxdepth 4 -type d -path '*lib/clang/*' | head -1)
-BUILTINS=$(find "$SYSROOT" -name 'libclang_rt.builtins-wasm32.a' | head -1)
 if [ -n "${RES:-}" ] && [ -n "${BUILTINS:-}" ]; then
   for t in wasm32-unknown-wasixp1 wasm32-unknown-wasi-preview1-threads wasm32-unknown-wasi; do
     mkdir -p "$RES/lib/$t"; ln -sf "$BUILTINS" "$RES/lib/$t/libclang_rt.builtins.a"
