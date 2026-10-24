@@ -17,6 +17,8 @@ fetch(){ local url=$1 name=$2
   if ! curl -fsSL --retry 3 --proto '=https' -o "$TOOLS/dl/$name" "$url"; then
     echo "DOWNLOAD FAILED url=$url"; exit 1
   fi
+  ls -l "$TOOLS/dl/$name" | tail -1 | sed "s#^#size: "#" >> "$TOOLS/provenance.txt"
+  file "$TOOLS/dl/$name" 2>/dev/null | sed "s#^#type: "#" >> "$TOOLS/provenance.txt"
   echo "$name sha256=$(sha256sum "$TOOLS/dl/$name" | cut -d' ' -f1)" >> "$TOOLS/provenance.txt"
 }
 fetch https://github.com/wasix-org/llvm-project/releases/download/21.1.206/LLVM-Linux-x86_64.tar.gz llvm.tar.gz
@@ -33,6 +35,8 @@ locate(){ # locate <label> <find-args...> ; sets global FOUND, prints to stdout
   fi
   FOUND="${HITS[0]}"; echo "found $label=$FOUND"
 }
+df -h "$TOOLS" | tail -1 | sed "s#^#disk: #"
+tar tzf "$TOOLS/dl/llvm.tar.gz" 2>/dev/null | head -5 | sed "s#^#llvm-entry: #"
 echo "== locating toolchain pieces under $TOOLS =="
 locate clang -type f -name clang;            CLANG="$FOUND"
 locate wasmer -type f -name wasmer;          WASMER="$FOUND"
