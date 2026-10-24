@@ -38,11 +38,11 @@ df -h "$TOOLS" | tail -1 | sed "s#^#disk: #"
 tar tzf "$TOOLS/dl/llvm.tar.gz" > "$TOOLS/llvm-list.txt" 2> "$TOOLS/llvm-err.txt" || echo "llvm.tar.gz listing failed: $(head -c 160 "$TOOLS/llvm-err.txt")"
 head -5 "$TOOLS/llvm-list.txt" | sed "s#^#llvm-entry: #"
 echo "== locating toolchain pieces under $TOOLS =="
-locate clang -type f -name clang;            CLANG="$FOUND"
-locate wasmer -type f -name wasmer;          WASMER="$FOUND"
-locate wasm-dis -type f -name wasm-dis;      WASMDIS="$FOUND"
-locate crt1-command.o -type f -name 'crt1-command.o'; CRT1="$FOUND"
-locate compiler-rt -type f -name 'libclang_rt.builtins-wasm32.a'; BUILTINS="$FOUND"
+locate clang \( -type f -o -type l \) -name clang;            CLANG="$FOUND"
+locate wasmer \( -type f -o -type l \) -name wasmer;          WASMER="$FOUND"
+locate wasm-dis \( -type f -o -type l \) -name wasm-dis;      WASMDIS="$FOUND"
+locate crt1-command.o \( -type f -o -type l \) -name 'crt1-command.o'; CRT1="$FOUND"
+locate compiler-rt \( -type f -o -type l \) -name 'libclang_rt.builtins-wasm32.a'; BUILTINS="$FOUND"
 LLVM=$(dirname "$CLANG"); BINEN=$(dirname "$WASMDIS")
 SYSROOT=$(dirname "$(dirname "$CRT1")")
 RESROOT=$(dirname "$(dirname "$LLVM")")/lib/clang
