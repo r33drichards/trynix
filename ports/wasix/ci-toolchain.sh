@@ -42,7 +42,7 @@ locate compiler-rt -type f -name 'libclang_rt.builtins-wasm32.a'; BUILTINS="$FOU
 LLVM=$(dirname "$CLANG"); BINEN=$(dirname "$WASMDIS")
 SYSROOT=$(dirname "$(dirname "$CRT1")")
 RESROOT=$(dirname "$(dirname "$LLVM")")/lib/clang
-echo "== clang resource dir: $RESROOT ==
+echo "== clang resource dir: $RESROOT =="
 mapfile -t RESS < <(find "$RESROOT" -maxdepth 2 -type d -name lib | head -1)
 if [ "${#RESS[@]}" -eq 0 ]; then echo "resource lib dir missing"; ls -l "$RESROOT" 2>&1 | head -10; exit 1; fi
 RES="${RESS[0]}"
@@ -70,5 +70,5 @@ echo "resource=$RES"
 cat "$TOOLS/provenance.txt"
 if [ -n "${GITHUB_PATH:-}" ]; then echo "$TOOLS/bin" >> "$GITHUB_PATH"; fi
 if [ -n "${GITHUB_ENV:-}" ]; then
-  { echo "WASIX_SYSROOT=$SYSROOT"; echo "WASMER=$WASMER"; echo "WASM_DIS=$WASMDIS"; echo "WASM_AS=$(dirname "$WASMDIS")/wasm-as"; } >> "$GITHUB_ENV"
+  { echo "WASIX_SYSROOT=$SYSROOT"; echo "WASMER=$WASMER"; echo "WASM_DIS=$WASMDIS"; echo "WASM_AS=$BINEN/wasm-as"; } >> "$GITHUB_ENV"
 fi
