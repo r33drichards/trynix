@@ -12,7 +12,7 @@ mkdir -p "$TOOLS/bin" "$TOOLS/dl"
 SHA(){ sha256sum "$1" | cut -d' ' -f1; }
 fetch(){ local url=$1 name=$2
   if [ ! -s "$TOOLS/dl/$name" ]; then curl -fsSL --retry 3 -o "$TOOLS/dl/$name" "$url"; fi
-  echo "$(basename "$dest") sha256=$(SHA "$TOOLS/dl/$name")" >> "$TOOLS/provenance.txt"
+  echo "$(basename "$name") sha256=$(SHA "$TOOLS/dl/$name")" >> "$TOOLS/provenance.txt"
 }
 : > "$TOOLS/provenance.txt"
 fetch https://github.com/wasix-org/llvm-project/releases/download/21.1.206/LLVM-Linux-x86_64.tar.gz llvm.tar.gz
