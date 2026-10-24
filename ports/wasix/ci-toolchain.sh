@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Install the WASIX toolchain revisions recorded in ports/wasix/pins.json
 # (observed_toolchain_dependencies) without any account or registry login:
-#   - wasix-org/llvm-project 21.1.206 (bundles Wasmer 7.5.0)
+#   - wasix-org/llvm-project 21.1.206
+#   - wasmerio/wasmer v7.5.0 (the LLVM release does not ship wasmer; this was learned the hard way)
 #   - wasix-org/wasix-libc v2026-10-02.1 sysroot-exnref-eh
 #   - WebAssembly/binaryen version_133
 # Publishes wasixcc/wasix++/wasixar/wasixranlib on PATH and records provenance.
@@ -23,9 +24,11 @@ fetch(){ local url=$1 name=$2 stats
 fetch https://github.com/wasix-org/llvm-project/releases/download/21.1.206/LLVM-Linux-x86_64.tar.gz llvm.tar.gz
 fetch https://github.com/wasix-org/wasix-libc/releases/download/v2026-10-02.1/sysroot-exnref-eh.tar.gz sysroot.tar.gz
 fetch https://github.com/WebAssembly/binaryen/releases/download/version_133/binaryen-version_133-x86_64-linux.tar.gz binaryen.tar.gz
+fetch https://github.com/wasmerio/wasmer/releases/download/v7.5.0/wasmer-linux-amd64.tar.gz wasmer.tar.gz
 tar xzf "$TOOLS/dl/llvm.tar.gz" -C "$TOOLS"
 tar xzf "$TOOLS/dl/sysroot.tar.gz" -C "$TOOLS"
 tar xzf "$TOOLS/dl/binaryen.tar.gz" -C "$TOOLS"
+tar xzf "$TOOLS/dl/wasmer.tar.gz" -C "$TOOLS"
 locate(){ # locate <label> <find-args...> ; sets global FOUND, prints to stdout
   local label=$1; shift
   mapfile -t HITS < <(find "$TOOLS" "$@" 2>/dev/null | head -1)
