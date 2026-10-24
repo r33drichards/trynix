@@ -10,7 +10,7 @@ PORT=$(cd "$(dirname "$0")" && pwd)
 TOOLS=${TOOLS:-${RUNNER_TEMP:-/tmp/wasix-tools}/tools}
 mkdir -p "$TOOLS/bin" "$TOOLS/dl"
 SHA(){ sha256sum "$1" | cut -d' ' -f1; }
-fetch(){ local url=$1 name=$2 dest=$3
+fetch(){ local url=$1 name=$2
   if [ ! -s "$TOOLS/dl/$name" ]; then curl -fsSL --retry 3 -o "$TOOLS/dl/$name" "$url"; fi
   echo "$(basename "$dest") sha256=$(SHA "$TOOLS/dl/$name")" >> "$TOOLS/provenance.txt"
 }
