@@ -56,7 +56,7 @@ cp "$PORT/coroutine-wasix-switch.S" "$QEMU/util/coroutine-wasix-switch.S"
 cp "$PORT/9p-errno-wasix.inc" "$QEMU/hw/9pfs/9p-errno-wasix.inc"
 # libffi/zlib configure scripts execute their compiler sanity conftest on the
 # build host. A wasm conftest cannot run on x86_64, so seed the usual autoconf
-# cache answers instead of letting those tests fail. Pinned sources, hashes and
+# (Removed: seeding ac_cv_/lt_cv_ cache answers made later libtool tests
 # patches are untouched by this.
 # The port's dependency configure scripts run their conftests (autoconf
 # "cannot run C compiled programs"). Upstream builds of this port rely on wasm
@@ -76,12 +76,6 @@ else
 fi
 printf "int main(void){return 0;}" > /tmp/bf.c && wasixcc -O2 /tmp/bf.c -o /tmp/bf.wasm 2>/dev/null && (/tmp/bf.wasm; echo "direct exec rc=$?") || true
 
-export ac_cv_prog_cc_works=yes
-export ac_cv_prog_cc_g=yes
-export ac_cv_prog_cc_c99=yes
-export lt_cv_prog_compiler_wl=-Wl,
-export lt_cv_prog_compiler_pic_works=yes
-export lt_cv_prog_compiler_static_works=yes
 
 echo "== dependency build =="
 if ! bash "$PORT/build-deps.sh" "$FFI" "$ZLIB" "$GLIB" "$W/out/deps" "$W/out/deps-build"; then
