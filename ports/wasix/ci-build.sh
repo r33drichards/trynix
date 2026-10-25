@@ -79,7 +79,7 @@ printf "int main(void){return 0;}" > /tmp/bf.c && wasixcc -O2 /tmp/bf.c -o /tmp/
 
 echo "== binfmt state at build start =="
 ls /proc/sys/fs/binfmt_misc 2>&1 | head -8
-for e in /proc/sys/fs/binfmt_misc/*; do case "$e" in *register*|*status*) continue;; esac; echo "-- $e"; head -4 "$e" 2>/dev/null; done
+for e in /proc/sys/fs/binfmt_misc/*; do case "$e" in *register*|*status*) continue;; esac; echo "-- $e"; { head -4 "$e" 2>/dev/null || true; } || true; done
 printf 'int main(void){return 7;}' > "$W/execprobe.c"
 wasixcc -O2 -pthread "$W/execprobe.c" -o "$W/execprobe.wasm" 2>&1 | head -4
 { "$W/execprobe.wasm"; echo "execprobe rc=$? (expect 7 if wasm ran)"; } || true
