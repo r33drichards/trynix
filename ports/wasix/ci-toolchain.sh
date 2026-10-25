@@ -27,7 +27,7 @@ curl -fsSL --retry 3 -o "$TOOLS/dl/wasmer.tar.gz" https://github.com/wasmerio/wa
 tar xzf "$TOOLS/dl/wasmer.tar.gz" -C "$TOOLS"
 WASMER=$(find "$TOOLS" \( -type f -o -type l \) -name wasmer | head -1)
 [ -n "$WASMER" ] || { say "wasmer binary not found after extract"; find "$TOOLS" -maxdepth 3 | head -30; exit 1; }
-cp -f "$WASMER" "$TOOLS/bin/wasmer"
+if [ "$WASMER" != "$TOOLS/bin/wasmer" ]; then cp -f "$WASMER" "$TOOLS/bin/wasmer"; fi
 chmod +x "$TOOLS/bin/wasmer"
 say "wasmer (pinned):"; "$TOOLS/bin/wasmer" --version | head -1
 if [ -s "$TOOLS/smoke.wasm" ]; then say "smoke run:"; "$TOOLS/bin/wasmer" run "$TOOLS/smoke.wasm" 2>&1 | head -5; say "smoke rc=$?"; else say "smoke.wasm was not produced"; fi
