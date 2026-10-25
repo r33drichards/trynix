@@ -47,7 +47,7 @@ locate wasm-dis \( -type f -o -type l \) -name wasm-dis;      WASMDIS="$FOUND"
 locate crt1-command.o \( -type f -o -type l \) -name 'crt1-command.o'; CRT1="$FOUND"
 locate compiler-rt \( -type f -o -type l \) -name 'libclang_rt.builtins-wasm32.a'; BUILTINS="$FOUND"
 LLVM=$(dirname "$CLANG"); BINEN=$(dirname "$WASMDIS")
-SYSROOT=$(dirname "$(dirname "$CRT1")")
+D1=$(dirname "$CRT1"); D2=$(dirname "$D1"); SYSROOT=$(dirname "$D2")
 RESROOT=$(dirname "$LLVM")/lib/clang
 echo "== clang resource dir: $RESROOT =="
 mapfile -t RESVER < <(find "$RESROOT" -mindepth 1 -maxdepth 1 -type d)
@@ -57,7 +57,7 @@ echo "resource version dir=${RESVER[0]} -> builtins under $RES"
 # The release tarball ships no wasm compiler-rt in clang's resource dir; the sysroot
 # does. Link it where clang looks so plain "wasixcc x.c -o x.wasm" behaves.
 for t in wasm32-unknown-wasixp1 wasm32-unknown-wasi-preview1-threads wasm32-unknown-wasi; do
-  mkdir -p "$RES/lib/$t"; ln -sf "$BUILTINS" "$RES/lib/$t/libclang_rt.builtins.a"
+  mkdir -p "$RES/$t"; ln -sf "$BUILTINS" "$RES/$t/libclang_rt.builtins.a"
 done
 # clang's WASI driver hands the linker a bare "crt1.o" and a -L path for a triple
 # directory this sysroot does not use (it ships lib/wasm32-wasi), so a plain
