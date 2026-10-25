@@ -68,7 +68,9 @@ ls -d /proc/sys/fs/binfmt_misc 2>&1 | head -2 || true
 wasmer binfmt --help 2>&1 | head -12 || true
 if [ -w /proc/sys/fs/binfmt_misc/register ] || sudo -n true 2>/dev/null; then
   echo "attempting wasmer binfmt register"
-  sudo -n wasmer binfmt register linux 2>&1 | head -6 || wasmer binfmt register linux 2>&1 | head -6 || echo "binfmt registration failed"
+  WBIN=$(command -v wasmer)
+  { sudo -n "$WBIN" binfmt register 2>&1 || "$WBIN" binfmt register 2>&1 || echo "binfmt registration failed"; } | head -8
+  ls /proc/sys/fs/binfmt_misc 2>&1 | head -6
 else
   echo "no binfmt access on this runner"
 fi
