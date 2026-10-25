@@ -47,7 +47,7 @@ jobs:
           PY
           node ports/wasix/prepare-lua.mjs "$G/STAGING"
           python3 ports/wasix/prepare-mapped-share.py "$G/STAGING" "$G/SHARE"
-python3 ports/wasix/run-guest.py "$RUNNER_TEMP/out/qemu/qemu-system-x86_64.wasm" "$G/PACK" "$G/SHARE" --timeout 300 --log "$G/guest-boot.log" > "$G/report.json" 2> "$G/boot.err" || true
+          python3 ports/wasix/run-guest.py "$RUNNER_TEMP/out/qemu/qemu-system-x86_64.wasm" "$G/PACK" "$G/SHARE" --timeout 300 --log "$G/guest-boot.log" > "$G/report.json" 2> "$G/boot.err" || true
           REPORT=$(tr -d "\n" < "$G/report.json" 2>/dev/null | tr -s " " | cut -c1-380)
           if [ -z "$REPORT" ]; then REPORT="no report; stderr: $(tr -d '\n' < "$G/boot.err" 2>/dev/null | cut -c1-300)"; fi
           echo "::notice::guest-e2e ${REPORT:-no report produced}"
