@@ -1,0 +1,11 @@
+--- a/configure.ac
++++ b/configure.ac
+@@ -217,7 +217,7 @@
+       [Define this if you want to enable pax emulated trampolines (experimental)])
+   fi)
+ 
+-LT_SYS_SYMBOL_USCORE
++sys_symbol_underscore=no # WASIX symbol names do not have a leading underscore
+ if test "x$sys_symbol_underscore" = xyes; then
+     AC_DEFINE(SYMBOL_UNDERSCORE, 1, [Define if symbols are underscored.])
+ fi

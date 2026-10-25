@@ -1,0 +1,15 @@
+--- a/util/meson.build
++++ b/util/meson.build
+@@ -79,7 +79,12 @@
+   util_ss.add(files('base64.c'))
+   util_ss.add(files('main-loop.c'))
+   util_ss.add(files('qemu-coroutine.c', 'qemu-coroutine-lock.c', 'qemu-coroutine-io.c'))
+   util_ss.add(files(f'coroutine-@coroutine_backend@.c'))
++  if coroutine_backend == 'wasix'
++    # WASIX contexts share the module-level __stack_pointer global, so the
++    # backend needs its frameless stack-switching shim as its own unit.
++    util_ss.add(files('coroutine-wasix-switch.S'))
++  endif
+   util_ss.add(files('thread-pool.c', 'qemu-timer.c'))
+   util_ss.add(files('qemu-sockets.c'))
+ endif

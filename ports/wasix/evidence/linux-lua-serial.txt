@@ -1,0 +1,12 @@
+c[?7l[2Jtrynix: clocksource refined-jiffies
+trynix: waiting for the store
+ready
+
+trynix: welcome to the multiverse
+lua -e 'print(string.char(76,85,65,95,72,69,76,76,79,95,80,65,83,83))'; echo LUA_EXIT:$?
+
+~ # lua -e 'print(string.char(76,85,65,95,72,69,76,76,79,95,80,65,83,83))'; echo
+
+ LUA_EXIT:$?
+LUA_HELLO_PASS
+LUA_EXIT:0

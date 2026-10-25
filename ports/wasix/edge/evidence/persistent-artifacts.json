@@ -1,0 +1,19 @@
+{
+  "supervisor": {
+    "bytes": 85666,
+    "sha256": "89ab525a1226bd32883da70f5d9d28c7a60af8ec878a57090986536bf8712e9f"
+  },
+  "qemu": {
+    "bytes": 12631774,
+    "sha256": "ae38c921b6d0b9635c4de494b1fcad7eca0a98ed0c397aec25c3c2e593b40517"
+  },
+  "package": {
+    "bytes": 61884390,
+    "sha256": "6c81b95b2eb6415cc02d02b9645fa405243eb1bc14ce2f85df7413014af11a76"
+  },
+  "source": {
+    "bytes": 32685,
+    "sha256": "0db7445250ce134a9c187d27f1b07bd6a779dc990a9a14c57c6350d0f9c615a3"
+  },
+  "scope": "Persistent mode, filtered share, local Wasmer package replay; existing host compile cache, no Edge deployment"
+}

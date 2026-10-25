@@ -1,0 +1,41 @@
+{
+  "health_seconds": 0.10572284299996682,
+  "max_input": {
+    "id": 1,
+    "state": 3,
+    "exit_code": 0,
+    "reaped": true,
+    "error": "",
+    "output": "MAX_INPUT_PASS\u0000"
+  },
+  "exact_output": {
+    "id": 2,
+    "state": 3,
+    "exit_code": 0,
+    "reaped": true,
+    "error": "",
+    "output_bytes": 131072
+  },
+  "output_limit": {
+    "id": 3,
+    "state": 3,
+    "exit_code": 153,
+    "reaped": true,
+    "error": "",
+    "output_bytes": 131072
+  },
+  "timeout": {
+    "id": 4,
+    "state": 5,
+    "exit_code": -1,
+    "reaped": true,
+    "error": "execution timeout",
+    "output": "",
+    "observed_running_seconds": 30.173382065000624
+  },
+  "result": "passed",
+  "elapsed_seconds": 167.80098902700047,
+  "host_peak_rss_kib": 784676,
+  "supervisor_sha256": "f0de1a7c450589820ba776d45df4ad65be58e3bd3bc5ce70064d4a41765cd32a",
+  "scope": "local Linux boundary tests; before public absolute-expiry guard, same guest-control path"
+}

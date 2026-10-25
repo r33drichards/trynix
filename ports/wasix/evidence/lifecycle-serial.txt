@@ -1,0 +1,8 @@
+Instance 1: selected output lines
+WARM_ONE
+WARM_TWO
+touch: /share/forbidden-write: Read-only file system
+GUEST_BOUNDARY_PASS
+BUSY_STARTED
+Instance 2: selected output lines
+FRESH_INSTANCE_PASS

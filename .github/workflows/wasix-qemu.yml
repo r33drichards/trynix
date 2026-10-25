@@ -1,0 +1,69 @@
+name: WASIX QEMU build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['port/wasix-qemu']
+    paths: ['ports/wasix/**', '.github/workflows/wasix-qemu.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      JOBS: "3"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            meson ninja-build pkg-config autoconf automake libtool-bin \
+            make patch python3-pip xz-utils curl ca-certificates
+          python3 -m pip install --user --break-system-packages pyelftools distlib
+      - name: WASIX toolchain (pinned revisions)
+        run: bash ports/wasix/ci-toolchain.sh
+      - name: Build dependencies and QEMU
+        run: bash ports/wasix/ci-build.sh
+      - name: Guest cold boot and Lua
+        run: |
+          set -euo pipefail
+          G="$RUNNER_TEMP/guest"; mkdir -p "$G/PACK"   # prepare-lua.mjs refuses an existing destination; STAGING/SHARE are created by the scripts
+          python3 - "$G/PACK" <<"PY"
+          import json, sys, urllib.request, hashlib, pathlib
+          pack = pathlib.Path(sys.argv[1])
+          pins = json.load(open('ports/wasix/pins.json'))['guest_sha256']
+          for name, want in pins.items():
+              dest = pack / name
+              with urllib.request.urlopen('https://trynix.dev/guest/' + name, timeout=180) as r:
+                  dest.write_bytes(r.read())
+              got = hashlib.sha256(dest.read_bytes()).hexdigest()
+              if got != want:
+                  raise SystemExit('guest file %s sha256 %s != pinned %s' % (name, got, want))
+              print('verified guest %s %s' % (name, got[:12]))
+          PY
+          node ports/wasix/prepare-lua.mjs "$G/STAGING"
+          python3 ports/wasix/prepare-mapped-share.py "$G/STAGING" "$G/SHARE"
+          python3 ports/wasix/run-guest.py "$RUNNER_TEMP/out/qemu/qemu-system-x86_64.wasm" "$G/PACK" "$G/SHARE" --timeout 300 --log "$G/guest-boot.log" > "$G/report.json" 2> "$G/boot.err" || true
+          REPORT=$(tr -d "\n" < "$G/report.json" 2>/dev/null | tr -s " " | cut -c1-380)
+          if [ -z "$REPORT" ]; then REPORT="no report; stderr: $(tr -d '\n' < "$G/boot.err" 2>/dev/null | cut -c1-300)"; fi
+          echo "::notice::guest-e2e ${REPORT:-no report produced}"
+          python3 - "$G/report.json" <<"PY2"
+          import json, sys, pathlib
+          p = pathlib.Path(sys.argv[1])
+          if not p.is_file(): raise SystemExit('guest report missing')
+          d = json.loads(p.read_text())
+          print('guest report:', d)
+          if d.get('result') != 'passed': raise SystemExit('guest e2e result=%s' % d.get('result'))
+          PY2
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasix-qemu-wasm
+          path: |
+            ${{ runner.temp }}/out/qemu/qemu-system-x86_64.wasm
+            ${{ runner.temp }}/out/qemu/qemu-system-x86_64.wasm.sha256
+          if-no-files-found: error

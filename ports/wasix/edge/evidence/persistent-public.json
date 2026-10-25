@@ -1,0 +1,20 @@
+{
+  "result": "passed",
+  "synchronous_output": true,
+  "busy_child_pid": 6,
+  "busy_child_entered": true,
+  "health_during_execution_seconds": 0.001204601998324506,
+  "busy_after_rate_interval": true,
+  "disconnect_reap_seconds": 0.1010117089972482,
+  "disconnect_reap_status": 6912,
+  "disconnect_cancel_then_fresh": true,
+  "fresh_response": {
+    "state": 3,
+    "exit_code": 7,
+    "reaped": true,
+    "error": "",
+    "output_base64": "ZmFrZQBieXRlcw=="
+  },
+  "public_jobs_routes_hidden": true,
+  "rate_and_total_cap": true
+}

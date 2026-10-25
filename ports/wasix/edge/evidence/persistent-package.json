@@ -1,0 +1,14 @@
+{
+  "health_seconds": 0.10676470199905452,
+  "http_status": 200,
+  "response": {
+    "state": 3,
+    "exit_code": 0,
+    "reaped": true,
+    "error": "",
+    "output_base64": "RVJSU1lOQ19MVUE6aW5wdXQA"
+  },
+  "result": "passed",
+  "elapsed_seconds": 27.311732049001876,
+  "host_peak_rss_kib": 797328
+}

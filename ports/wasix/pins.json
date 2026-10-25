@@ -1,0 +1,34 @@
+{
+  "qemu_commit": "0ef7b4e2814b231705d8371dd7997f5b72e70baf",
+  "trynix_commit": "2da7f8ac0bdd922ff29b17c8327c00c1d39e1355",
+  "wasmer": "7.5.0",
+  "wasixcc": "0.4.7",
+  "libffi_commit": "09cbf7d66d232a01dbb0c88fd5ae65fa9c15f7c7",
+  "archives_sha256": {
+    "zlib.tar.xz": "38ef96b8dfe510d42707d9c781877914792541133e1870841463bfa73f883e32",
+    "trynix.tar.gz": "5b1189915848498933f082f29d3990e3a9d3a1457a1ac1d635e63b6db301cd95",
+    "qemu.tar.gz": "e78094503df31cd373f5609247c1a0c9bf771b75f68398c679e361bd3b4808c2",
+    "qemu-upstream.tar.xz": "bf00d2fa12010df8b0ade93371def58e632cb32a6bfdc5f5a0ff8e6a1fb1bf32",
+    "glib.tar.xz": "6dde8e55cc4a2c83d96797120b08bcffb5f645b2e212164ae22d63c40e0e6360",
+    "libffi.tar.gz": "5e626f664fceb4f282bfa87f1ebde33fc43ed271fbf52db4f88a822988ed6bd8",
+    "libffi-pinned.tar.gz": "7097de0f66f458c2bd44e0e021e449a2572692067f7136791bdd4788330de978",
+    "pcre2-10.40.tar.bz2": "14e4b83c4783933dc17e964318e6324f7cae1bc75d8f3c79bc6969f00c159d68",
+    "pcre2_10.40-3_patch.zip": "95391923529b4c1647a2cf88cd3b59cceb4f92393775e011f530e7865de0c7fb"
+  },
+  "guest_sha256": {
+    "linuxboot_dma.bin": "9c49e255340c78fc12e54ed043462bca02fb7fca29b7cfab62ff88a5344b6950",
+    "kvmvapic.bin": "cdf057a71b07e3b52b19cbe210bdefa59250d01a9810b960f7fe1f98eed95a27",
+    "bzImage": "a5e995aa1c72fa8963fe8b11af5a5612bf7df11c5e88d1effde59e4224902349",
+    "initramfs.cpio.gz": "e5ec03dc67fef7368dd4439b0172345573b15ef8b54e5ddcc3b7f578dcb2b655",
+    "bios-256k.bin": "f1d4f396011197eb989029659cde250751cc711c336b8fbbe6f77cfe0dc5dcd8",
+    "vgabios-stdvga.bin": "651513519f9e0d5b99d3b051a8f5c68db69e987339b59a441d371068c34c146b",
+    "machine.json": "40c5ae6cb1f31f1e1c4a2cdd9b3ea9103de40d72beb1e1a0209a1b570e5e29aa"
+  },
+  "observed_toolchain_dependencies": {
+    "status": "Recorded from successful installer log; archive checksums and exact linked-runtime source revisions remain unverified",
+    "wasix_libc_release": "v2026-10-02.1",
+    "used_sysroot_asset": "https://github.com/wasix-org/wasix-libc/releases/download/v2026-10-02.1/sysroot-exnref-eh.tar.gz",
+    "llvm_asset": "https://github.com/wasix-org/llvm-project/releases/download/21.1.206/LLVM-Linux-x86_64.tar.gz",
+    "binaryen_asset": "https://github.com/WebAssembly/binaryen/releases/download/version_133/binaryen-version_133-x86_64-linux.tar.gz"
+  }
+}

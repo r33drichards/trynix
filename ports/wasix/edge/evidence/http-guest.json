@@ -1,0 +1,30 @@
+{
+  "health_seconds": 0.10769994400106953,
+  "first": {
+    "id": 1,
+    "state": 3,
+    "exit_code": 0,
+    "reaped": true,
+    "error": "",
+    "output": "USER_LUA\tinput works\n65534\n65534\ntrue\texit\t0\nEXEC_END_MARK:0\n"
+  },
+  "second": {
+    "id": 2,
+    "state": 3,
+    "exit_code": 1,
+    "reaped": true,
+    "error": "",
+    "output": "FRESH_REQUEST_PASS\nlua: /tmp/request.lua:1: EXPECTED_LUA_ERROR\nstack traceback:\n\t[C]: in global 'error'\n\t/tmp/request.lua:1: in main chunk\n\t[C]: in ?\n"
+  },
+  "cancel": {
+    "id": 3,
+    "state": 4,
+    "exit_code": -1,
+    "reaped": true,
+    "error": "",
+    "output": ""
+  },
+  "result": "passed",
+  "elapsed_seconds": 76.79123194400017,
+  "host_peak_rss_kib": 779088
+}
