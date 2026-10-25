@@ -22,6 +22,13 @@ say "wasixcc --version:"; wasixcc --version 2>&1 | head -5 || say "wasixcc --ver
 printf 'int main(void){return 0;}\n' > "$TOOLS/smoke.c"
 say "smoke compile+link:"; wasixcc -O2 -pthread "$TOOLS/smoke.c" -o "$TOOLS/smoke.wasm" 2>&1 | head -15 || say "smoke link failed \$?"
 say "wasixccenv:"; (wasixccenv --version 2>&1 | head -2) || true
+# wasixcc behaves differently with and without -pthread on this runner; pin the
+# difference down explicitly so the dependency build is not debugged blind.
+printf "int main(void){return 0;}" > "$TOOLS/v.c"
+say "variant A (no -pthread):"; wasixcc -O2 "$TOOLS/v.c" -o "$TOOLS/vA.wasm" 2>&1 | tail -4; say "A rc=$? exists=$([ -s "$TOOLS/vA.wasm" ] && echo yes || echo no)"
+say "variant B (-pthread):"; wasixcc -O2 -pthread "$TOOLS/v.c" -o "$TOOLS/vB.wasm" 2>&1 | tail -4; say "B rc=$? exists=$([ -s "$TOOLS/vB.wasm" ] && echo yes || echo no)"
+say "variant C (-c only):"; wasixcc -O2 -c "$TOOLS/v.c" -o "$TOOLS/vC.o" 2>&1 | tail -3; say "C exists=$([ -s "$TOOLS/vC.o" ] && echo yes || echo no)"
+
 say "fetching pinned Wasmer 7.5.0 runtime"
 curl -fsSL --retry 3 -o "$TOOLS/dl/wasmer.tar.gz" https://github.com/wasmerio/wasmer/releases/download/v7.5.0/wasmer-linux-amd64.tar.gz
 tar xzf "$TOOLS/dl/wasmer.tar.gz" -C "$TOOLS"
