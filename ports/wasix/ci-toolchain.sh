@@ -71,9 +71,9 @@ LIBDIR="$SYSROOT/lib/wasm32-wasi"
 out=()
 for a in "$@"; do
   case "$a" in
-    crt1.o|crt1-command.o|crt1-reactor.o|crt1-threads.o|rcrt1.o) a="$LIBDIR/$a";;
+    crt1.o|crt1-command.o|crt1-reactor.o|crt1-threads.o|rcrt1.o) a="\$LIBDIR/\$a";;
   esac
-  out+=("$a")
+  out+=("\$a")
 done
 exec "$LLVM/wasm-ld" "${out[@]}"
 EOF
