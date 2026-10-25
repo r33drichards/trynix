@@ -31,7 +31,7 @@ jobs:
       - name: Guest cold boot and Lua
         run: |
           set -euo pipefail
-          G="$RUNNER_TEMP/guest"; mkdir -p "$G/PACK" "$G/STAGING" "$G/SHARE"
+          G="$RUNNER_TEMP/guest"; mkdir -p "$G/PACK"   # prepare-lua.mjs refuses an existing destination; STAGING/SHARE are created by the scripts
           python3 - "$G/PACK" <<"PY"
           import json, sys, urllib.request, hashlib, pathlib
           pack = pathlib.Path(sys.argv[1])
