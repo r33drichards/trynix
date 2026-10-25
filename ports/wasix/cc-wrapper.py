@@ -10,6 +10,11 @@ import sys
 
 compiler, *args = sys.argv[1:]
 args = [arg for arg in args if arg not in ('-Wl,--start-group', '-Wl,--end-group')]
+# wasm-ld rejects these GNU-ld options; glib's meson adds them unconditionally, and
+# pcre2grep (a subproject tool) then fails to link. Dropping them keeps the
+# archive-group workaround above working for the rest of the tree.
+args = [arg for arg in args if arg not in ('-Wl,--as-needed', '-Wl,--no-undefined', '-Wl,-O1')]
+# Keep any -Wl, prefixed option that wasm-ld does understand (e.g. --export-*).
 # QEMU names static archives .fa; wasixcc 0.4.7 classifies them as C inputs.
 # An adjacent .a alias preserves relative paths inside LLVM thin archives.
 for index, arg in enumerate(args):
