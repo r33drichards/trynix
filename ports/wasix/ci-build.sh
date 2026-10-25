@@ -113,5 +113,6 @@ echo "== QEMU build =="
 bash "$PORT/build-qemu.sh" "$QEMU" "$W/out/deps" "$W/out/qemu"
 ls -la "$W/out/qemu/qemu-system-x86_64.wasm"
 sha256sum "$W/out/qemu/qemu-system-x86_64.wasm" | tee "$W/out/qemu/qemu-system-x86_64.wasm.sha256"
+echo "::notice::wasm-sha $(cut -d' ' -f1 "$W/out/qemu/qemu-system-x86_64.wasm.sha256") bytes $(wc -c < "$W/out/qemu/qemu-system-x86_64.wasm")"
 echo "== coroutine C-stack gate (fails on the unfixed backend) =="
 bash "$PORT/test-coroutine-stack.sh" 1500

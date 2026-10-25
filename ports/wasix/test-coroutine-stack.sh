@@ -110,4 +110,6 @@ if [ "$rc2" -eq 0 ]; then
   echo "FAIL: the shared-stack backend survived N=$N_TRAP, so this gate proves nothing"
   exit 1
 fi
+echo "::notice::gate-fixed n=$N_PASS rc=$rc $(printf "%s" "$out" | tr '"' ' ')"'
+echo "::notice::gate-shared-stack n=$N_TRAP rc=$rc2 $(printf "%s" "$out2" | head -2 | tr '"' ' ')"'
 echo "GATE OK: fixed backend passes at N=$N_PASS; shared-stack backend fails at N=$N_TRAP"
