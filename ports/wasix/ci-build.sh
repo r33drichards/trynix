@@ -54,6 +54,17 @@ echo "== patches =="
 cp "$PORT/coroutine-wasix.c" "$QEMU/util/coroutine-wasix.c"
 cp "$PORT/coroutine-wasix-switch.S" "$QEMU/util/coroutine-wasix-switch.S"
 cp "$PORT/9p-errno-wasix.inc" "$QEMU/hw/9pfs/9p-errno-wasix.inc"
+# libffi/zlib configure scripts execute their compiler sanity conftest on the
+# build host. A wasm conftest cannot run on x86_64, so seed the usual autoconf
+# cache answers instead of letting those tests fail. Pinned sources, hashes and
+# patches are untouched by this.
+export ac_cv_prog_cc_works=yes
+export ac_cv_prog_cc_g=yes
+export ac_cv_prog_cc_c99=yes
+export lt_cv_prog_compiler_wl=-Wl,
+export lt_cv_prog_compiler_pic_works=yes
+export lt_cv_prog_compiler_static_works=yes
+
 echo "== dependency build =="
 if ! bash "$PORT/build-deps.sh" "$FFI" "$ZLIB" "$GLIB" "$W/out/deps" "$W/out/deps-build"; then
   echo "== build-deps failed; collecting diagnostics =="
