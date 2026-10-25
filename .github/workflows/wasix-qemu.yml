@@ -33,6 +33,6 @@ jobs:
         with:
           name: wasix-qemu-wasm
           path: |
-            ${{ runner.temp }}/wasix-build/out/qemu/qemu-system-x86_64.wasm
-            ${{ runner.temp }}/wasix-build/out/qemu/qemu-system-x86_64.wasm.sha256
+            ${{ runner.temp }}/out/qemu/qemu-system-x86_64.wasm
+            ${{ runner.temp }}/out/qemu/qemu-system-x86_64.wasm.sha256
           if-no-files-found: error
