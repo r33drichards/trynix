@@ -1,101 +1,41 @@
 #!/usr/bin/env bash
-# Install the WASIX toolchain revisions recorded in ports/wasix/pins.json
-# (observed_toolchain_dependencies) without any account or registry login:
-#   - wasix-org/llvm-project 21.1.206
-#   - wasmerio/wasmer v7.5.0 (the LLVM release does not ship wasmer; this was learned the hard way)
-#   - wasix-org/wasix-libc v2026-10-02.1 sysroot-exnref-eh
-#   - WebAssembly/binaryen version_133
-# Publishes wasixcc/wasix++/wasixar/wasixranlib on PATH and records provenance.
-# Every failure path prints what it saw: silent exits made the first runs undiagnosable.
+# Install the toolchain the port was actually built with: official wasixcc 0.4.7
+# (its installer fetches the pinned WASIX LLVM/sysroot/binaryen into ~/.wasixcc)
+# plus an explicit Wasmer 7.5.0 binary, because pins.json records wasmer 7.5.0 and
+# the installer's own wasmer may differ.
+#
+# Earlier revisions of this script tried to emulate wasixcc with a raw clang
+# --target=wasm32-wasixp1 wrapper plus a hand-written crt1.o linker shim. That
+# emulation kept failing in ways the real driver does not (configure's
+# "C compiler cannot create executables", then "undefined symbol: main"), so it
+# was removed rather than patched further: use the upstream tool.
 set -euo pipefail
-PORT=$(cd "$(dirname "$0")" && pwd)
 TOOLS=${TOOLS:-${RUNNER_TEMP:-/tmp/wasix-tools}/tools}
 mkdir -p "$TOOLS/bin" "$TOOLS/dl"
 : > "$TOOLS/provenance.txt"
-fetch(){ local url=$1 name=$2 stats
-  if [ -s "$TOOLS/dl/$name" ]; then echo "cached $name bytes=$(wc -c < "$TOOLS/dl/$name")"; return 0; fi
-  if ! stats=$(curl -fsSL --retry 3 -o "$TOOLS/dl/$name" -w '%{http_code} %{size_download} %{url_effective}' "$url"); then
-    echo "DOWNLOAD FAILED name=$name url=$url code=${stats:-curl-nonzero} bytes=$(wc -c < "$TOOLS/dl/$name" 2>/dev/null || echo 0)"
-    exit 1
-  fi
-  echo "fetched $name stats=$stats on_disk=$(wc -c < "$TOOLS/dl/$name")"
-  echo "$name sha256=$(sha256sum "$TOOLS/dl/$name" | cut -d' ' -f1)" >> "$TOOLS/provenance.txt"
-}
-fetch https://github.com/wasix-org/llvm-project/releases/download/21.1.206/LLVM-Linux-x86_64.tar.gz llvm.tar.gz
-fetch https://github.com/wasix-org/wasix-libc/releases/download/v2026-10-02.1/sysroot-exnref-eh.tar.gz sysroot.tar.gz
-fetch https://github.com/WebAssembly/binaryen/releases/download/version_133/binaryen-version_133-x86_64-linux.tar.gz binaryen.tar.gz
-fetch https://github.com/wasmerio/wasmer/releases/download/v7.5.0/wasmer-linux-amd64.tar.gz wasmer.tar.gz
-tar xzf "$TOOLS/dl/llvm.tar.gz" -C "$TOOLS"
-tar xzf "$TOOLS/dl/sysroot.tar.gz" -C "$TOOLS"
-tar xzf "$TOOLS/dl/binaryen.tar.gz" -C "$TOOLS"
+say(){ echo "[toolchain] $*"; }
+say "installing wasixcc via https://wasix.cc (non-interactive)"
+if ! curl -fsSL --retry 3 https://wasix.cc | sh; then say "installer failed"; exit 1; fi
+export PATH="$HOME/.wasixcc/bin:$TOOLS/bin:$PATH"
+say "wasixcc:"; wasixcc --version 2>&1 | head -2
+say "wasixccenv:"; (wasixccenv --version 2>&1 | head -2) || true
+say "fetching pinned Wasmer 7.5.0 runtime"
+curl -fsSL --retry 3 -o "$TOOLS/dl/wasmer.tar.gz" https://github.com/wasmerio/wasmer/releases/download/v7.5.0/wasmer-linux-amd64.tar.gz
 tar xzf "$TOOLS/dl/wasmer.tar.gz" -C "$TOOLS"
-locate(){ # locate <label> <find-args...> ; sets global FOUND, prints to stdout
-  local label=$1; shift
-  mapfile -t HITS < <(find "$TOOLS" "$@" 2>/dev/null | head -1)
-  if [ "${#HITS[@]}" -eq 0 ]; then
-    echo "NOT FOUND: $label"; echo "--- tree under $TOOLS (maxdepth 3) ---"; find "$TOOLS" -maxdepth 3 | head -40; exit 1
-  fi
-  FOUND="${HITS[0]}"; echo "found $label=$FOUND"
-}
-df -h "$TOOLS" | tail -1 | sed "s#^#disk: #"
-tar tzf "$TOOLS/dl/llvm.tar.gz" > "$TOOLS/llvm-list.txt" 2> "$TOOLS/llvm-err.txt" || echo "llvm.tar.gz listing failed: $(head -c 160 "$TOOLS/llvm-err.txt")"
-head -5 "$TOOLS/llvm-list.txt" | sed "s#^#llvm-entry: #"
-echo "== locating toolchain pieces under $TOOLS =="
-locate clang \( -type f -o -type l \) -name clang;            CLANG="$FOUND"
-locate wasmer \( -type f -o -type l \) -name wasmer;          WASMER="$FOUND"
-locate wasm-dis \( -type f -o -type l \) -name wasm-dis;      WASMDIS="$FOUND"
-locate crt1-command.o \( -type f -o -type l \) -name 'crt1-command.o'; CRT1="$FOUND"
-locate compiler-rt \( -type f -o -type l \) -name 'libclang_rt.builtins-wasm32.a'; BUILTINS="$FOUND"
-LLVM=$(dirname "$CLANG"); BINEN=$(dirname "$WASMDIS")
-D1=$(dirname "$CRT1"); D2=$(dirname "$D1"); SYSROOT=$(dirname "$D2")
-RESROOT=$(dirname "$LLVM")/lib/clang
-echo "== clang resource dir: $RESROOT =="
-mapfile -t RESVER < <(find "$RESROOT" -mindepth 1 -maxdepth 1 -type d)
-if [ "${#RESVER[@]}" -eq 0 ]; then echo "no clang version dir under $RESROOT"; ls -l "$RESROOT" 2>&1 | head -10; exit 1; fi
-RES="${RESVER[0]}/lib"
-echo "resource version dir=${RESVER[0]} -> builtins under $RES"
-# The release tarball ships no wasm compiler-rt in clang's resource dir; the sysroot
-# does. Link it where clang looks so plain "wasixcc x.c -o x.wasm" behaves.
-for t in wasm32-unknown-wasixp1 wasm32-unknown-wasi-preview1-threads wasm32-unknown-wasi; do
-  mkdir -p "$RES/$t"; ln -sf "$BUILTINS" "$RES/$t/libclang_rt.builtins.a"
+WASMER=$(find "$TOOLS" \( -type f -o -type l \) -name wasmer | head -1)
+[ -n "$WASMER" ] || { say "wasmer binary not found after extract"; find "$TOOLS" -maxdepth 3 | head -30; exit 1; }
+cp -f "$WASMER" "$TOOLS/bin/wasmer"
+chmod +x "$TOOLS/bin/wasmer"
+say "wasmer (pinned):"; "$TOOLS/bin/wasmer" --version | head -1
+for f in "$TOOLS/dl/wasmer.tar.gz" "$HOME/.wasixcc/bin/wasixcc"; do
+  [ -e "$f" ] && echo "$(basename "$f") sha256=$(sha256sum "$f" | cut -d' ' -f1)" >> "$TOOLS/provenance.txt"
 done
-# clang's WASI driver hands the linker a bare "crt1.o" and a -L path for a triple
-# directory this sysroot does not use (it ships lib/wasm32-wasi), so a plain
-# "wasixcc x.c -o x.wasm" link fails to find the startup file. This linker shim
-# rewrites the bare crt objects to the sysroot location, then execs the real
-# wasm-ld. Learned by reproducing configure's "C compiler cannot create
-# executables" locally with the same pinned archives.
-{ echo '#!/usr/bin/env bash'
-  echo "LIBDIR=\"$SYSROOT/lib/wasm32-wasi\""
-  echo "REAL=\"$LLVM/wasm-ld\""
-  echo 'out=()'
-  echo 'for a in "$@"; do'
-  echo '  case "$a" in'
-  echo '    crt1.o|crt1-command.o|crt1-reactor.o|crt1-threads.o|rcrt1.o) a="$LIBDIR/$a";;'
-  echo '  esac'
-  echo '  out+=("$a")'
-  echo 'done'
-  echo 'exec "$REAL" "${out[@]}"'
-} > "$TOOLS/bin/wasix-ld"
-chmod +x "$TOOLS/bin/wasix-ld"
-cat > "$TOOLS/bin/wasixcc" <<EOF
-#!/bin/sh
-exec "$CLANG" --target=wasm32-wasixp1 --sysroot="$SYSROOT" -L"$SYSROOT/lib/wasm32-wasi" -fuse-ld="$TOOLS/bin/wasix-ld" -Wl,--import-memory -Wl,--export-table -Wl,--shared-memory -Wl,--no-check-features "$@"
-EOF
-cat > "$TOOLS/bin/wasix++" <<EOF
-#!/bin/sh
-exec "$LLVM/clang++" --target=wasm32-wasixp1 --sysroot="$SYSROOT" -L"$SYSROOT/lib/wasm32-wasi" -fuse-ld="$TOOLS/bin/wasix-ld" "$@"
-EOF
-printf '#!/bin/sh\nexec %s/llvm-ar "$@"\n' "$LLVM" > "$TOOLS/bin/wasixar"
-printf '#!/bin/sh\nexec %s/llvm-ranlib "$@"\n' "$LLVM" > "$TOOLS/bin/wasixranlib"
-chmod +x "$TOOLS"/bin/*
-export PATH="$TOOLS/bin:$LLVM:$BINEN:$PATH"
-"$CLANG" --version | head -2
-"$WASMER" --version | head -1
-echo "sysroot=$SYSROOT"
-echo "resource=$RES"
 cat "$TOOLS/provenance.txt"
-if [ -n "${GITHUB_PATH:-}" ]; then echo "$TOOLS/bin" >> "$GITHUB_PATH"; fi
+if [ -n "${GITHUB_PATH:-}" ]; then { echo "$TOOLS/bin"; echo "$HOME/.wasixcc/bin"; } >> "$GITHUB_PATH"; fi
 if [ -n "${GITHUB_ENV:-}" ]; then
-  { echo "WASIX_SYSROOT=$SYSROOT"; echo "WASMER=$WASMER"; echo "WASM_DIS=$WASMDIS"; echo "WASM_AS=$BINEN/wasm-as"; } >> "$GITHUB_ENV"
+  echo "WASMER=$TOOLS/bin/wasmer" >> "$GITHUB_ENV"
+  echo "WASIX_HOME=$HOME/.wasixcc" >> "$GITHUB_ENV"
+  B=$(find "$HOME/.wasixcc" \( -type f -o -type l \) -name 'wasm-dis' | head -1)
+  [ -n "$B" ] && { echo "WASM_DIS=$B" >> "$GITHUB_ENV"; echo "WASM_AS=$(dirname "$B")/wasm-as" >> "$GITHUB_ENV"; }
 fi
+say "done"
