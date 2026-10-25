@@ -64,6 +64,7 @@ cp "$PORT/9p-errno-wasix.inc" "$QEMU/hw/9pfs/9p-errno-wasix.inc"
 # binfmt handler when the runner allows it; otherwise report clearly instead of
 # silently faking cache answers for every run test.
 echo "== wasm conftest execution capability =="
+set +e +o pipefail   # diagnostics only: head/tail in pipes would abort the step under set -e/pipefail
 ls -d /proc/sys/fs/binfmt_misc 2>&1 | head -2 || true
 wasmer binfmt --help 2>&1 | head -12 || true
 if [ -w /proc/sys/fs/binfmt_misc/register ] || sudo -n true 2>/dev/null; then
@@ -84,9 +85,11 @@ printf 'int main(void){return 7;}' > "$W/execprobe.c"
 wasixcc -O2 -pthread "$W/execprobe.c" -o "$W/execprobe.wasm" 2>&1 | head -4
 { "$W/execprobe.wasm"; echo "execprobe rc=$? (expect 7 if wasm ran)"; } || true
 { wasmer run "$W/execprobe.wasm" >/dev/null 2>&1; echo "wasmer-run rc=$? (expect 7)"; } || true
+set -e -o pipefail
 echo "== dependency build =="
 if ! { bash "$PORT/build-deps.sh" "$FFI" "$ZLIB" "$GLIB" "$W/out/deps" "$W/out/deps-build" 2>&1 | tee "$W/deps.out" | tail -n 0; }; then
   echo "== build-deps failed; collecting diagnostics =="
+  set +e +o pipefail
   printf 'int main(void){return 0;}\n' > "$W/conftest.c"
   echo "--- direct wasixcc link ---"
   wasixcc -O2 -pthread "$W/conftest.c" -o "$W/conftest.wasm" 2>&1 | head -20 || true
@@ -113,6 +116,7 @@ print(\"::error::cfg-tail \" + \" ~ \".join(tail(cfg, 12)))
 PY
   echo "diagnostic annotations emitted"
 
+  set -e -o pipefail
   if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     { echo "### dependency build failure (last 45 log lines)"; echo "```"; tail -45 "$W/deps.out" 2>/dev/null; echo "```"; } >> "$GITHUB_STEP_SUMMARY" || true
   fi
