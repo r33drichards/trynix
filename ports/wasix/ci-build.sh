@@ -99,6 +99,8 @@ if ! { bash "$PORT/build-deps.sh" "$FFI" "$ZLIB" "$GLIB" "$W/out/deps" "$W/out/d
     echo "--- $f ---"; grep -iE "configure:argv|error|cannot|unrecognized|No such|wasm-ld" "$f" | head -18 || true
     echo "--- config.log tail (raw) ---"; tail -32 "$f" | cut -c1-190 || true
   done
+  { echo "::error::dep-build failed; tail follows"; }
+  tail -12 "$W/deps.out" 2>/dev/null | sed -E "s/%/%25/g; s/\r/%0D/g; s/\n/%0A/g" | sed -E "s/^::error::dep-tail /::error::/" || true
   if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     { echo "### dependency build failure (last 45 log lines)"; echo "```"; tail -45 "$W/deps.out" 2>/dev/null; echo "```"; } >> "$GITHUB_STEP_SUMMARY" || true
   fi
