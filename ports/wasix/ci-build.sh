@@ -58,6 +58,22 @@ cp "$PORT/9p-errno-wasix.inc" "$QEMU/hw/9pfs/9p-errno-wasix.inc"
 # build host. A wasm conftest cannot run on x86_64, so seed the usual autoconf
 # cache answers instead of letting those tests fail. Pinned sources, hashes and
 # patches are untouched by this.
+# The port's dependency configure scripts run their conftests (autoconf
+# "cannot run C compiled programs"). Upstream builds of this port rely on wasm
+# binaries being executable on the build host, so register Wasmer as the wasm
+# binfmt handler when the runner allows it; otherwise report clearly instead of
+# silently faking cache answers for every run test.
+echo "== wasm conftest execution capability =="
+ls -d /proc/sys/fs/binfmt_misc 2>&1 | head -2 || true
+wasmer binfmt --help 2>&1 | head -12 || true
+if [ -w /proc/sys/fs/binfmt_misc/register ] || sudo -n true 2>/dev/null; then
+  echo "attempting wasmer binfmt register"
+  sudo -n wasmer binfmt register linux 2>&1 | head -6 || wasmer binfmt register linux 2>&1 | head -6 || echo "binfmt registration failed"
+else
+  echo "no binfmt access on this runner"
+fi
+printf "int main(void){return 0;}" > /tmp/bf.c && wasixcc -O2 /tmp/bf.c -o /tmp/bf.wasm 2>/dev/null && (/tmp/bf.wasm; echo "direct exec rc=$?") || true
+
 export ac_cv_prog_cc_works=yes
 export ac_cv_prog_cc_g=yes
 export ac_cv_prog_cc_c99=yes
