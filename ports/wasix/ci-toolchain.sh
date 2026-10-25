@@ -59,13 +59,32 @@ echo "resource version dir=${RESVER[0]} -> builtins under $RES"
 for t in wasm32-unknown-wasixp1 wasm32-unknown-wasi-preview1-threads wasm32-unknown-wasi; do
   mkdir -p "$RES/lib/$t"; ln -sf "$BUILTINS" "$RES/lib/$t/libclang_rt.builtins.a"
 done
+# clang's WASI driver hands the linker a bare "crt1.o" and a -L path for a triple
+# directory this sysroot does not use (it ships lib/wasm32-wasi), so a plain
+# "wasixcc x.c -o x.wasm" link fails to find the startup file. This linker shim
+# rewrites the bare crt objects to the sysroot location, then execs the real
+# wasm-ld. Learned by reproducing configure's "C compiler cannot create
+# executables" locally with the same pinned archives.
+cat > "$TOOLS/bin/wasix-ld" <<EOF
+#!/usr/bin/env bash
+LIBDIR="$SYSROOT/lib/wasm32-wasi"
+out=()
+for a in "$@"; do
+  case "$a" in
+    crt1.o|crt1-command.o|crt1-reactor.o|crt1-threads.o|rcrt1.o) a="$LIBDIR/$a";;
+  esac
+  out+=("$a")
+done
+exec "$LLVM/wasm-ld" "${out[@]}"
+EOF
+chmod +x "$TOOLS/bin/wasix-ld"
 cat > "$TOOLS/bin/wasixcc" <<EOF
 #!/bin/sh
-exec "$CLANG" --target=wasm32-wasixp1 --sysroot="$SYSROOT" -Wl,--import-memory -Wl,--export-table -Wl,--shared-memory -Wl,--no-check-features "$@"
+exec "$CLANG" --target=wasm32-wasixp1 --sysroot="$SYSROOT" -L"$SYSROOT/lib/wasm32-wasi" -fuse-ld="$TOOLS/bin/wasix-ld" -Wl,--import-memory -Wl,--export-table -Wl,--shared-memory -Wl,--no-check-features "$@"
 EOF
 cat > "$TOOLS/bin/wasix++" <<EOF
 #!/bin/sh
-exec "$LLVM/clang++" --target=wasm32-wasixp1 --sysroot="$SYSROOT" "$@"
+exec "$LLVM/clang++" --target=wasm32-wasixp1 --sysroot="$SYSROOT" -L"$SYSROOT/lib/wasm32-wasi" -fuse-ld="$TOOLS/bin/wasix-ld" "$@"
 EOF
 printf '#!/bin/sh\nexec %s/llvm-ar "$@"\n' "$LLVM" > "$TOOLS/bin/wasixar"
 printf '#!/bin/sh\nexec %s/llvm-ranlib "$@"\n' "$LLVM" > "$TOOLS/bin/wasixranlib"
