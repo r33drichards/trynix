@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# pins.json records both the upstream libffi release (libffi.tar.gz)
+# and the wasix-org fork commit archive (libffi-pinned.tar.gz); the build
+# uses the fork, so the fork hash is the one verified here.
 # Fetch pinned sources, verify checksums against ports/wasix/pins.json, apply the
 # WASIX patches (including the coroutine C-stack gate files) and run the port's
 # dependency + QEMU build scripts. Requires ci-toolchain.sh output on PATH.
@@ -9,7 +12,7 @@ mkdir -p "$W/src" "$W/x" "$W/out"
 JOBS=${JOBS:-3}
 URLS='qemu-wasm|https://github.com/ktock/qemu-wasm/archive/0ef7b4e2814b231705d8371dd7997f5b72e70baf.tar.gz|qemu.tar.gz
 qemu-upstream|https://download.qemu.org/qemu-8.2.0.tar.xz|qemu-upstream.tar.xz
-libffi|https://github.com/wasix-org/libffi/archive/09cbf7d66d232a01dbb0c88fd5ae65fa9c15f7c7.tar.gz|libffi.tar.gz
+libffi|https://github.com/wasix-org/libffi/archive/09cbf7d66d232a01dbb0c88fd5ae65fa9c15f7c7.tar.gz|libffi-pinned.tar.gz
 glib|https://download.gnome.org/sources/glib/2.75/glib-2.75.0.tar.xz|glib.tar.gz
 zlib|https://zlib.net/fossils/zlib-1.3.1.tar.xz|zlib.tar.xz'
 echo "== download + verify =="
