@@ -65,18 +65,18 @@ done
 # rewrites the bare crt objects to the sysroot location, then execs the real
 # wasm-ld. Learned by reproducing configure's "C compiler cannot create
 # executables" locally with the same pinned archives.
-cat > "$TOOLS/bin/wasix-ld" <<EOF
-#!/usr/bin/env bash
-LIBDIR="$SYSROOT/lib/wasm32-wasi"
-out=()
-for a in "$@"; do
-  case "$a" in
-    crt1.o|crt1-command.o|crt1-reactor.o|crt1-threads.o|rcrt1.o) a="\$LIBDIR/\$a";;
-  esac
-  out+=("\$a")
-done
-exec "$LLVM/wasm-ld" "${out[@]}"
-EOF
+{ echo '#!/usr/bin/env bash'
+  echo "LIBDIR=\"$SYSROOT/lib/wasm32-wasi\""
+  echo "REAL=\"$LLVM/wasm-ld\""
+  echo 'out=()'
+  echo 'for a in "$@"; do'
+  echo '  case "$a" in'
+  echo '    crt1.o|crt1-command.o|crt1-reactor.o|crt1-threads.o|rcrt1.o) a="$LIBDIR/$a";;'
+  echo '  esac'
+  echo '  out+=("$a")'
+  echo 'done'
+  echo 'exec "$REAL" "${out[@]}"'
+} > "$TOOLS/bin/wasix-ld"
 chmod +x "$TOOLS/bin/wasix-ld"
 cat > "$TOOLS/bin/wasixcc" <<EOF
 #!/bin/sh
