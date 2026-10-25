@@ -102,24 +102,11 @@ if ! { bash "$PORT/build-deps.sh" "$FFI" "$ZLIB" "$GLIB" "$W/out/deps" "$W/out/d
     echo "--- $f ---"; grep -iE "configure:argv|error|cannot|unrecognized|No such|wasm-ld" "$f" | head -18 || true
     echo "--- config.log tail (raw) ---"; tail -32 "$f" | cut -c1-190 || true
   done
-  CFGLOG=$(find "$W/x" -maxdepth 4 -name config.log | head -1)
-  python3 - "$W/deps.out" "${CFGLOG:-none}" <<'PY'
-import sys
-deps, cfg = sys.argv[1], sys.argv[2]
-def tail(p, n):
-    try:
-        return [l.strip()[:130] for l in open(p, errors=\"replace\").read().splitlines()[-n:]]
-    except Exception as e:
-        return [\"unreadable: %s\" % e]
-print(\"::error::dep-tail \" + \" ~ \".join(tail(deps, 12)))
-print(\"::error::cfg-tail \" + \" ~ \".join(tail(cfg, 12)))
-PY
-  echo "diagnostic annotations emitted"
+  TAIL=$(tail -16 "$W/deps.out" 2>/dev/null | paste -sd "~" - | cut -c1-1200 || true)
+  echo "::error::dep-tail ${TAIL}"
+  CFGLOG=$(find "$W/x" -maxdepth 4 -name config.log 2>/dev/null | head -1 || true)
+  if [ -n "${CFGLOG:-}" ]; then CT=$(tail -12 "$CFGLOG" | paste -sd "~" - | cut -c1-1200 || true); echo "::error::cfg-tail ${CT}"; fi
 
-  set -e -o pipefail
-  if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
-    { echo "### dependency build failure (last 45 log lines)"; echo "```"; tail -45 "$W/deps.out" 2>/dev/null; echo "```"; } >> "$GITHUB_STEP_SUMMARY" || true
-  fi
   exit 1
 fi
 echo "== QEMU build =="
