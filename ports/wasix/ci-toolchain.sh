@@ -50,9 +50,10 @@ LLVM=$(dirname "$CLANG"); BINEN=$(dirname "$WASMDIS")
 SYSROOT=$(dirname "$(dirname "$CRT1")")
 RESROOT=$(dirname "$(dirname "$LLVM")")/lib/clang
 echo "== clang resource dir: $RESROOT =="
-mapfile -t RESS < <(find "$RESROOT" -maxdepth 2 -type d -name lib | head -1)
-if [ "${#RESS[@]}" -eq 0 ]; then echo "resource lib dir missing"; ls -l "$RESROOT" 2>&1 | head -10; exit 1; fi
-RES="${RESS[0]}"
+mapfile -t RESVER < <(find "$RESROOT" -mindepth 1 -maxdepth 1 -type d)
+if [ "${#RESVER[@]}" -eq 0 ]; then echo "no clang version dir under $RESROOT"; ls -l "$RESROOT" 2>&1 | head -10; exit 1; fi
+RES="${RESVER[0]}/lib"
+echo "resource version dir=${RESVER[0]} -> builtins under $RES"
 # The release tarball ships no wasm compiler-rt in clang's resource dir; the sysroot
 # does. Link it where clang looks so plain "wasixcc x.c -o x.wasm" behaves.
 for t in wasm32-unknown-wasixp1 wasm32-unknown-wasi-preview1-threads wasm32-unknown-wasi; do
