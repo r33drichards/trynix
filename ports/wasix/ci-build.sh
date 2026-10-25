@@ -55,7 +55,20 @@ cp "$PORT/coroutine-wasix.c" "$QEMU/util/coroutine-wasix.c"
 cp "$PORT/coroutine-wasix-switch.S" "$QEMU/util/coroutine-wasix-switch.S"
 cp "$PORT/9p-errno-wasix.inc" "$QEMU/hw/9pfs/9p-errno-wasix.inc"
 echo "== dependency build =="
-bash "$PORT/build-deps.sh" "$FFI" "$ZLIB" "$GLIB" "$W/out/deps" "$W/out/deps-build"
+if ! bash "$PORT/build-deps.sh" "$FFI" "$ZLIB" "$GLIB" "$W/out/deps" "$W/out/deps-build"; then
+  echo "== build-deps failed; collecting diagnostics =="
+  printf 'int main(void){return 0;}\n' > "$W/conftest.c"
+  echo "--- direct wasixcc link ---"
+  wasixcc -O2 -pthread "$W/conftest.c" -o "$W/conftest.wasm" 2>&1 | head -20
+  echo "--- wasixcc -### ---"
+  wasixcc -O2 -pthread "$W/conftest.c" -o "$W/conftest.wasm" -### 2>&1 | tail -4 | cut -c1-400
+  echo "--- generated shim ---"
+  cat "$(command -v wasix-ld || true)" 2>/dev/null | head -14
+  for f in $(find "$W/x" -maxdepth 3 -name config.log | head -2); do
+    echo "--- $f ---"; grep -iE "error|cannot|unrecognized|No such|ld.lld|wasm-ld" "$f" | head -25
+  done
+  exit 1
+fi
 echo "== QEMU build =="
 bash "$PORT/build-qemu.sh" "$QEMU" "$W/out/deps" "$W/out/qemu"
 ls -la "$W/out/qemu/qemu-system-x86_64.wasm"
