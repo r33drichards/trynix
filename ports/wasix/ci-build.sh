@@ -44,7 +44,6 @@ GLIB=$(find "$W/x" -maxdepth 1 -type d -name 'glib-*' | head -1)
 ZLIB=$(find "$W/x" -maxdepth 1 -type d -name 'zlib-*' | head -1)
 for sm in dtc keycodemapdb berkeley-softfloat-3 berkeley-testfloat-3; do
   rm -rf "$QEMU/subprojects/$sm"; cp -a "$UP/subprojects/$sm" "$QEMU/subprojects/$sm"
-done
 echo "== patches =="
 (cd "$FFI"  && patch -p1 < "$PORT/libffi-wasix.patch")
 (cd "$GLIB" && patch -p1 < "$PORT/glib-minimal.patch")
@@ -63,49 +62,22 @@ cp "$PORT/9p-errno-wasix.inc" "$QEMU/hw/9pfs/9p-errno-wasix.inc"
 # binaries being executable on the build host, so register Wasmer as the wasm
 # binfmt handler when the runner allows it; otherwise report clearly instead of
 # silently faking cache answers for every run test.
-echo "== wasm conftest execution capability =="
-set +e +o pipefail   # diagnostics only: head/tail in pipes would abort the step under set -e/pipefail
-ls -d /proc/sys/fs/binfmt_misc 2>&1 | head -2 || true
-wasmer binfmt --help 2>&1 | head -12 || true
 if [ -w /proc/sys/fs/binfmt_misc/register ] || sudo -n true 2>/dev/null; then
   echo "attempting wasmer binfmt register"
   WBIN=$(command -v wasmer)
   { sudo -n "$WBIN" binfmt register 2>&1 || "$WBIN" binfmt register 2>&1 || echo "binfmt registration failed"; } | head -8
-  ls /proc/sys/fs/binfmt_misc 2>&1 | head -6
 else
   echo "no binfmt access on this runner"
 fi
 printf "int main(void){return 0;}" > /tmp/bf.c && wasixcc -O2 /tmp/bf.c -o /tmp/bf.wasm 2>/dev/null && (/tmp/bf.wasm; echo "direct exec rc=$?") || true
 
 
-echo "== binfmt state at build start =="
-ls /proc/sys/fs/binfmt_misc 2>&1 | head -8
-for e in /proc/sys/fs/binfmt_misc/*; do case "$e" in *register*|*status*) continue;; esac; echo "-- $e"; { head -4 "$e" 2>/dev/null || true; } || true; done
-printf 'int main(void){return 7;}' > "$W/execprobe.c"
-wasixcc -O2 -pthread "$W/execprobe.c" -o "$W/execprobe.wasm" 2>&1 | head -4
-{ "$W/execprobe.wasm"; echo "execprobe rc=$? (expect 7 if wasm ran)"; } || true
-{ wasmer run "$W/execprobe.wasm" >/dev/null 2>&1; echo "wasmer-run rc=$? (expect 7)"; } || true
-set -e -o pipefail
 echo "== dependency build =="
 if ! { bash "$PORT/build-deps.sh" "$FFI" "$ZLIB" "$GLIB" "$W/out/deps" "$W/out/deps-build" 2>&1 | tee "$W/deps.out" | tail -n 0; }; then
-  echo "== build-deps failed; collecting diagnostics =="
-  set +e +o pipefail
-  printf 'int main(void){return 0;}\n' > "$W/conftest.c"
-  echo "--- direct wasixcc link ---"
+    printf 'int main(void){return 0;}\n' > "$W/conftest.c"
   wasixcc -O2 -pthread "$W/conftest.c" -o "$W/conftest.wasm" 2>&1 | head -20 || true
-  echo "--- conftest.c bytes ---"; wc -c "$W/conftest.c" || true; cat "$W/conftest.c" || true
-  echo "--- wasixcc -### ---"
   wasixcc -O2 -pthread "$W/conftest.c" -o "$W/conftest.wasm" -### 2>&1 | tail -3 | cut -c1-700 || true
-  echo "--- generated shim ---"
   cat "$(command -v wasix-ld)" 2>/dev/null | head -14 || true
-  for f in $(find "$W/x" -maxdepth 3 -name config.log | head -2); do
-    echo "--- $f ---"; grep -iE "configure:argv|error|cannot|unrecognized|No such|wasm-ld" "$f" | head -18 || true
-    echo "--- config.log tail (raw) ---"; tail -32 "$f" | cut -c1-190 || true
-  done
-  TAIL=$(tail -16 "$W/deps.out" 2>/dev/null | paste -sd "~" - | cut -c1-1200 || true)
-  echo "::error::dep-tail ${TAIL}"
-  CFGLOG=$(find "$W/x" -maxdepth 4 -name config.log 2>/dev/null | head -1 || true)
-  if [ -n "${CFGLOG:-}" ]; then CT=$(tail -12 "$CFGLOG" | paste -sd "~" - | cut -c1-1200 || true); echo "::error::cfg-tail ${CT}"; fi
 
   exit 1
 fi
