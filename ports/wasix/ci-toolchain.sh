@@ -31,6 +31,7 @@ WASMER=$(find "$TOOLS" \( -type f -o -type l \) -name wasmer | head -1)
 cp -f "$WASMER" "$TOOLS/bin/wasmer"
 chmod +x "$TOOLS/bin/wasmer"
 say "wasmer (pinned):"; "$TOOLS/bin/wasmer" --version | head -1
+if [ -s "$TOOLS/smoke.wasm" ]; then say "smoke run:"; "$TOOLS/bin/wasmer" run "$TOOLS/smoke.wasm" 2>&1 | head -5; say "smoke rc=$?"; else say "smoke.wasm was not produced"; fi
 for f in "$TOOLS/dl/wasmer.tar.gz" "$HOME/.wasixcc/bin/wasixcc"; do
   [ -e "$f" ] && echo "$(basename "$f") sha256=$(sha256sum "$f" | cut -d' ' -f1)" >> "$TOOLS/provenance.txt"
 done
