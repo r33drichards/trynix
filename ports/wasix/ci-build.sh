@@ -85,7 +85,7 @@ wasixcc -O2 -pthread "$W/execprobe.c" -o "$W/execprobe.wasm" 2>&1 | head -4
 { "$W/execprobe.wasm"; echo "execprobe rc=$? (expect 7 if wasm ran)"; } || true
 { wasmer run "$W/execprobe.wasm" >/dev/null 2>&1; echo "wasmer-run rc=$? (expect 7)"; } || true
 echo "== dependency build =="
-if ! bash "$PORT/build-deps.sh" "$FFI" "$ZLIB" "$GLIB" "$W/out/deps" "$W/out/deps-build"; then
+if ! { bash "$PORT/build-deps.sh" "$FFI" "$ZLIB" "$GLIB" "$W/out/deps" "$W/out/deps-build" 2>&1 | tee "$W/deps.out" | tail -n 0; }; then
   echo "== build-deps failed; collecting diagnostics =="
   printf 'int main(void){return 0;}\n' > "$W/conftest.c"
   echo "--- direct wasixcc link ---"
@@ -99,6 +99,9 @@ if ! bash "$PORT/build-deps.sh" "$FFI" "$ZLIB" "$GLIB" "$W/out/deps" "$W/out/dep
     echo "--- $f ---"; grep -iE "configure:argv|error|cannot|unrecognized|No such|wasm-ld" "$f" | head -18 || true
     echo "--- config.log tail (raw) ---"; tail -32 "$f" | cut -c1-190 || true
   done
+  if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+    { echo "### dependency build failure (last 45 log lines)"; echo "```"; tail -45 "$W/deps.out" 2>/dev/null; echo "```"; } >> "$GITHUB_STEP_SUMMARY" || true
+  fi
   exit 1
 fi
 echo "== QEMU build =="
