@@ -17,7 +17,11 @@ say(){ echo "[toolchain] $*"; }
 say "installing wasixcc via https://wasix.cc (non-interactive)"
 if ! curl -fsSL --retry 3 https://wasix.cc | sh; then say "installer failed"; exit 1; fi
 export PATH="$HOME/.wasixcc/bin:$TOOLS/bin:$PATH"
-say "wasixcc:"; wasixcc --version 2>&1 | head -2
+say "installed under \$HOME/.wasixcc:"; ls -1 "$HOME/.wasixcc" 2>&1 | head -10; ls -1 "$HOME/.wasixcc/bin" 2>&1 | head -15
+say "wasixcc --version:"; wasixcc --version 2>&1 | head -5 || say "wasixcc --version exited \$?"
+printf 'int main(void){return 0;}\n' > "$TOOLS/smoke.c"
+say "smoke compile+link:"; wasixcc -O2 -pthread "$TOOLS/smoke.c" -o "$TOOLS/smoke.wasm" 2>&1 | head -15 || say "smoke link failed \$?"
+if [ -s "$TOOLS/smoke.wasm" ]; then say "smoke run:"; "$TOOLS/bin/wasmer" run "$TOOLS/smoke.wasm" 2>&1 | head -5; say "smoke rc=\$?"; else say "no smoke.wasm produced"; fi
 say "wasixccenv:"; (wasixccenv --version 2>&1 | head -2) || true
 say "fetching pinned Wasmer 7.5.0 runtime"
 curl -fsSL --retry 3 -o "$TOOLS/dl/wasmer.tar.gz" https://github.com/wasmerio/wasmer/releases/download/v7.5.0/wasmer-linux-amd64.tar.gz
