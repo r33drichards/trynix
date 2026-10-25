@@ -59,13 +59,14 @@ if ! bash "$PORT/build-deps.sh" "$FFI" "$ZLIB" "$GLIB" "$W/out/deps" "$W/out/dep
   echo "== build-deps failed; collecting diagnostics =="
   printf 'int main(void){return 0;}\n' > "$W/conftest.c"
   echo "--- direct wasixcc link ---"
-  wasixcc -O2 -pthread "$W/conftest.c" -o "$W/conftest.wasm" 2>&1 | head -20
+  wasixcc -O2 -pthread "$W/conftest.c" -o "$W/conftest.wasm" 2>&1 | head -20 || true
+  echo "--- conftest.c bytes ---"; wc -c "$W/conftest.c" || true; cat "$W/conftest.c" || true
   echo "--- wasixcc -### ---"
-  wasixcc -O2 -pthread "$W/conftest.c" -o "$W/conftest.wasm" -### 2>&1 | tail -4 | cut -c1-400
+  wasixcc -O2 -pthread "$W/conftest.c" -o "$W/conftest.wasm" -### 2>&1 | tail -3 | cut -c1-700 || true
   echo "--- generated shim ---"
-  cat "$(command -v wasix-ld || true)" 2>/dev/null | head -14
+  cat "$(command -v wasix-ld)" 2>/dev/null | head -14 || true
   for f in $(find "$W/x" -maxdepth 3 -name config.log | head -2); do
-    echo "--- $f ---"; grep -iE "error|cannot|unrecognized|No such|ld.lld|wasm-ld" "$f" | head -25
+    echo "--- $f ---"; grep -iE "configure:argv|error|cannot|unrecognized|No such|wasm-ld" "$f" | head -18 || true
   done
   exit 1
 fi
