@@ -9,7 +9,7 @@ Sources and archive SHA-256 values are recorded in pins.json. Fetch from the ori
 - https://download.qemu.org/qemu-8.2.0.tar.xz
 - https://github.com/wasix-org/libffi/archive/09cbf7d66d232a01dbb0c88fd5ae65fa9c15f7c7.tar.gz
 - https://download.gnome.org/sources/glib/2.75/glib-2.75.0.tar.xz
-- https://zlib.net/fossils/zlib-1.3.1.tar.xz
+- https://distfiles.macports.org/zlib/zlib-1.3.1.tar.xz (zlib.net/fossils publishes only the .tar.gz for 1.3.1, whose SHA-256 is 9a93b2b7... and is NOT the pinned value; the .xz above matches the pinned 38ef96b8...)
 
 Verify archive checksums before extracting. The GitHub QEMU archive lacks submodule sources: copy subprojects/dtc, subprojects/keycodemapdb, subprojects/berkeley-softfloat-3 and subprojects/berkeley-testfloat-3 from the official QEMU 8.2.0 archive into the fork. Do not apply the TryNix Emscripten-specific patches to this WASIX target.
 
