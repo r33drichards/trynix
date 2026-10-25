@@ -48,7 +48,7 @@ locate crt1-command.o \( -type f -o -type l \) -name 'crt1-command.o'; CRT1="$FO
 locate compiler-rt \( -type f -o -type l \) -name 'libclang_rt.builtins-wasm32.a'; BUILTINS="$FOUND"
 LLVM=$(dirname "$CLANG"); BINEN=$(dirname "$WASMDIS")
 SYSROOT=$(dirname "$(dirname "$CRT1")")
-RESROOT=$(dirname "$(dirname "$LLVM")")/lib/clang
+RESROOT=$(dirname "$LLVM")/lib/clang
 echo "== clang resource dir: $RESROOT =="
 mapfile -t RESVER < <(find "$RESROOT" -mindepth 1 -maxdepth 1 -type d)
 if [ "${#RESVER[@]}" -eq 0 ]; then echo "no clang version dir under $RESROOT"; ls -l "$RESROOT" 2>&1 | head -10; exit 1; fi
